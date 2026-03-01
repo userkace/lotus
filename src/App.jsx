@@ -743,7 +743,7 @@ export default function App() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="text-sm font-semibold">{deal.item}</p>
-                        <p className="text-xs text-wf-text-muted">{deal.totalSold}/{deal.totalAmount} sold</p>
+                        <p className="text-xs text-wf-text-muted">{deal.amountTotal - deal.amountSold}/{deal.amountTotal} sold</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-wf-primary">
@@ -758,7 +758,7 @@ export default function App() {
                     <div className="w-full bg-wf-bg h-1.5 rounded-full overflow-hidden">
                       <div 
                         className="bg-wf-primary h-full" 
-                        style={{ width: `${(deal.totalSold / deal.totalAmount) * 100}%` }}
+                        style={{ width: `${((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100}%` }}
                       />
                     </div>
                   </Card>
