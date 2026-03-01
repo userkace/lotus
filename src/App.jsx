@@ -744,7 +744,7 @@ export default function App() {
           {/* Sortie / Archon Hunt */}
           <section>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-              <SectionHeader title={sortieMode === 'sortie' ? 'Sortie' : 'Archon Hunt'} />
+              <SectionHeader title={sortieMode === 'sortie' ? 'Sortie' : 'Archon'} />
               <div className="flex gap-2">
                 <button
                   onClick={() => setSortieMode('sortie')}
