@@ -33,9 +33,9 @@ import {
   processAcolytes,
   processBounties,
   processFactionProjects,
-  processKuvaSiphons,
   getRelicTiers,
-  formatTimeRemaining 
+  formatTimeRemaining,
+  formatTimeFromBase 
 } from './api/warframeService.js';
 
 // Helper function for extracting location from node
@@ -208,13 +208,11 @@ export default function App() {
   const dailyDeals = warframeData ? processDailyDeals(warframeData) : [];
   const events = warframeData?.news?.data || [];
   const alerts = warframeData?.alerts?.data || [];
-  const archonHunt = warframeData?.sorties?.data?.[0] || null;
   const arbitrations = warframeData ? processArbitrations(warframeData) : null;
   const voidStorms = warframeData ? processVoidStorms(warframeData, voidStormFilter) : [];
   const acolytes = warframeData ? processAcolytes(warframeData) : [];
   const bounties = warframeData ? processBounties(warframeData) : [];
   const factionProjects = warframeData ? processFactionProjects(warframeData) : [];
-  const kuvaSiphons = warframeData ? processKuvaSiphons(warframeData) : [];
 
   if (error && !warframeData) {
     return (
@@ -299,48 +297,49 @@ export default function App() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Main Column */}
         <div className="lg:col-span-8 space-y-8">
-          {/* Sortie */}
+
+          {/* Active Invasions */}
           <section>
-            <SectionHeader title="Sortie Analysis" />
+            <SectionHeader title="Active Invasions" />
             {loading ? (
-              <Card className="p-6">
-                <div className="animate-pulse space-y-4">
-                  <div className="h-6 bg-wf-border rounded w-1/3"></div>
-                  <div className="h-4 bg-wf-border rounded w-1/4"></div>
-                  <div className="space-y-2 pt-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-12 bg-wf-border rounded"></div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            ) : sortie ? (
-              <Card className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold">{sortie.boss}</h3>
-                    <p className="text-wf-text-muted text-xs uppercase">{sortie.missionType}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-mono text-wf-primary">Ends in: {sortie.timeLeft}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {sortie.missions.map((m) => (
-                    <div key={m.id} className="flex items-center gap-4 py-3 border-t border-wf-border/50">
-                      <span className="text-wf-text-muted font-mono text-sm">{m.id}</span>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{m.type}</p>
-                        <p className="text-xs text-wf-text-muted italic">{m.modifier}</p>
-                      </div>
-                      <span className="text-xs uppercase tracking-tighter text-wf-text-muted">{m.location}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-wf-border rounded w-2/3"></div>
+                      <div className="h-3 bg-wf-border rounded w-1/2"></div>
+                      <div className="h-3 bg-wf-border rounded w-1/4"></div>
                     </div>
-                  ))}
-                </div>
-              </Card>
+                  </Card>
+                ))}
+              </div>
+            ) : invasions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {invasions.map((inv, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="text-sm font-bold">{inv.node}</p>
+                      </div>
+                      <span className="text-wf-primary font-mono text-xs">{inv.progress}%</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className={`text-xs p-2 rounded ${inv.progress > 50 ? 'bg-wf-border/50' : 'bg-wf-primary/20'}`}>
+                        <div className="font-semibold">{inv.factionAttacker}</div>
+                        <div className="text-wf-text-muted">{inv.attackerReward}</div>
+                      </div>
+                      <div className="text-xs text-center text-wf-text-muted">vs</div>
+                      <div className={`text-xs p-2 rounded ${inv.progress <= 50 ? 'bg-wf-border/50' : 'bg-wf-primary/20'}`}>
+                        <div className="font-semibold">{inv.factionDefender}</div>
+                        <div className="text-wf-text-muted">{inv.defenderReward}</div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <Card className="p-6">
-                <p className="text-wf-text-muted text-center">No sortie data available</p>
+                <p className="text-wf-text-muted text-center">No active invasions</p>
               </Card>
             )}
           </section>
@@ -501,6 +500,97 @@ export default function App() {
 
         {/* Sidebar */}
         <aside className="lg:col-span-4 space-y-8">
+          {/* Alerts */}
+          <section>
+            <SectionHeader title="Alerts" />
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Card key={i} className="p-3">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
+                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : alerts.length > 0 ? (
+              <div className="space-y-3">
+                {alerts.map((alert, i) => (
+                  <Card key={i} className="p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs font-mono text-wf-text-muted">{alert.location}</span>
+                      <span className="text-sm font-mono text-wf-primary">
+                        {formatTimeRemaining(alert.end)}
+                      </span>
+                    </div>
+                    <div className="text-xs">
+                      <p className="font-semibold">{alert.missionType}</p>
+                      {alert.rewards?.credits && (
+                        <p className="text-wf-primary">{alert.rewards.credits} credits</p>
+                      )}
+                      {alert.rewards?.items && alert.rewards.items.length > 0 && (
+                        <p className="text-wf-text-muted">
+                          {alert.rewards.items.map(item => item.name).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-3">
+                <p className="text-wf-text-muted text-center">No active alerts</p>
+              </Card>
+            )}
+          </section>
+
+          {/* Sortie */}
+          <section>
+            <SectionHeader title="Sortie Analysis" />
+            {loading ? (
+              <Card className="p-5">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-6 bg-wf-border rounded w-1/3"></div>
+                  <div className="h-4 bg-wf-border rounded w-1/4"></div>
+                  <div className="space-y-2 pt-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="h-12 bg-wf-border rounded"></div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            ) : sortie ? (
+              <Card className="p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold">{sortie.boss}</h3>
+                    <p className="text-wf-text-muted text-xs uppercase">{sortie.missionType}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-mono text-wf-primary">Ends in: {sortie.timeLeft}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {sortie.missions.map((m) => (
+                    <div key={m.id} className="flex items-center gap-4 py-3 border-t border-wf-border/50">
+                      <span className="text-wf-text-muted font-mono text-sm">{m.id}</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">{m.type}</p>
+                        <p className="text-xs text-wf-text-muted italic">{m.modifier}</p>
+                      </div>
+                      <span className="text-xs uppercase tracking-tighter text-wf-text-muted">{m.location}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-5">
+                <p className="text-wf-text-muted text-center">No sortie data available</p>
+              </Card>
+            )}
+          </section>
+
           {/* Nightwave */}
           <section>
             <SectionHeader title="Nightwave" />
@@ -577,6 +667,83 @@ export default function App() {
             )}
           </section>
 
+          {/* Faction Projects */}
+          <section>
+            <SectionHeader title="Faction Projects" />
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Card key={i} className="p-3">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
+                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : factionProjects.length > 0 ? (
+              <div className="space-y-3">
+                {factionProjects.map((project, i) => (
+                  <Card key={i} className="p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="text-sm text-white">
+                        {project.type} <span className="text-xs text-wf-text-muted">({project.faction})</span>
+                      </div>
+                      <div className="text-xs text-wf-text-muted">{project.timeRemaining}</div>
+                    </div>
+                    {/* Progress Graph */}
+                    {project.progressHistory && project.progressHistory.length > 2 && (
+                      <div className="mt-3 relative">
+                        <div className="absolute top-2 left-2 flex items-center gap-2 text-xs font-bold text-wf-primary z-20">
+                          {project.progress}%
+                          {project.progress < 100 && (
+                            <div className="relative w-2 h-2 flex items-center justify-center">
+                              <div className="absolute w-1.5 h-1.5 bg-wf-primary rounded-full"></div>
+                              <div className="absolute w-1.5 h-1.5 bg-wf-primary rounded-full animate-ping"></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="h-16 bg-wf-bg rounded p-2 relative overflow-visible">
+                          <div className="absolute inset-0 flex items-end justify-between px-2 pb-1">
+                            {project.progressHistory.slice(0, -1).map((point, index) => {
+                              const height = (point[1] / 100) * 100; // percentage to height
+                              const baseTime = project.progressHistory[0][0]; // First data point as base
+                              return (
+                                <div
+                                  key={index}
+                                  className="bg-wf-primary w-1 rounded-t hover:bg-wf-primary/80 transition-colors relative group"
+                                  style={{ height: `${height}%` }}
+                                >
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+                                    <div>{point[1].toFixed(2)}%</div>
+                                    <div className="text-wf-text-muted text-[10px]">{formatTimeFromBase(point[0], baseTime)}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {project.rewards.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {project.rewards.slice(0, 2).map((reward, rewardIndex) => (
+                          <span key={rewardIndex} className="text-xs bg-wf-border px-2 py-1 rounded">
+                            {reward.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-3">
+                <p className="text-wf-text-muted text-center">No faction projects active</p>
+              </Card>
+            )}
+          </section>
+
           {/* Events */}
           <section>
             <SectionHeader title="Events" />
@@ -625,99 +792,6 @@ export default function App() {
             ) : (
               <Card className="p-3">
                 <p className="text-wf-text-muted text-center">No active events</p>
-              </Card>
-            )}
-          </section>
-
-          {/* Alerts */}
-          <section>
-            <SectionHeader title="Alerts" />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : alerts.length > 0 ? (
-              <div className="space-y-3">
-                {alerts.map((alert, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-mono text-wf-text-muted">{alert.location}</span>
-                      <span className="text-[10px] font-bold text-wf-primary">
-                        {formatTimeRemaining(alert.end)}
-                      </span>
-                    </div>
-                    <div className="text-xs">
-                      <p className="font-semibold">{alert.missionType}</p>
-                      {alert.rewards?.credits && (
-                        <p className="text-wf-primary">{alert.rewards.credits} credits</p>
-                      )}
-                      {alert.rewards?.items && alert.rewards.items.length > 0 && (
-                        <p className="text-wf-text-muted">
-                          {alert.rewards.items.map(item => item.name).join(', ')}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No active alerts</p>
-              </Card>
-            )}
-          </section>
-
-          {/* Archon Hunt */}
-          <section>
-            <SectionHeader title="Archon Hunt" />
-            {loading ? (
-              <Card className="p-5">
-                <div className="animate-pulse space-y-4">
-                  <div className="h-4 bg-wf-border rounded w-1/3"></div>
-                  <div className="h-2 bg-wf-border rounded w-full"></div>
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-8 bg-wf-border rounded"></div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            ) : archonHunt ? (
-              <Card className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold">{archonHunt.bossName?.replace(/SORTIE_BOSS_/, '').replace(/_/g, ' ') || 'Archon Hunt'}</h3>
-                    <p className="text-wf-text-muted text-xs uppercase">Sortie</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-mono text-wf-primary">
-                      Ends in: {formatTimeRemaining(archonHunt.end)}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {archonHunt.missions?.map((mission, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2 border-t border-wf-border/50">
-                      <span className="text-wf-text-muted font-mono text-sm">{i + 1}</span>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{mission.missionType}</p>
-                        <p className="text-xs text-wf-text-muted">{extractLocationFromNode(mission.location)}</p>
-                        <p className="text-xs text-wf-primary italic">{mission.modifier}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            ) : (
-              <Card className="p-5">
-                <p className="text-wf-text-muted text-center">No Archon Hunt available</p>
               </Card>
             )}
           </section>
@@ -923,199 +997,86 @@ export default function App() {
             )}
           </section>
 
-          {/* Bounties */}
-          <section>
-            <SectionHeader title="Bounties" />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : bounties.length > 0 ? (
-              <div className="space-y-4">
-                {bounties.map((bounty, i) => (
-                  <Card key={i} className="p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-lg font-bold">{bounty.syndicate}</h3>
-                        <p className="text-wf-text-muted text-xs uppercase">{bounty.location}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs text-wf-text-muted uppercase font-bold tracking-widest">Available Jobs</p>
-                      {bounty.jobs.map((job, jobIndex) => (
-                        <div key={jobIndex} className="flex items-center gap-3 py-2 border-t border-wf-border/50">
-                          <span className="text-wf-text-muted font-mono text-sm">{job.id}</span>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold">
-                              Level {job.minLevel}-{job.maxLevel}
-                            </p>
-                            {job.rewards.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-1">
-                                {job.rewards.slice(0, 3).map((reward, rewardIndex) => (
-                                  <span key={rewardIndex} className="text-xs bg-wf-border px-2 py-1 rounded">
-                                    {reward.name}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No bounties available</p>
-              </Card>
-            )}
-          </section>
 
-          {/* Faction Projects */}
-          <section>
-            <SectionHeader title="Faction Projects" />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : factionProjects.length > 0 ? (
-              <div className="space-y-3">
-                {factionProjects.map((project, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-mono text-wf-text-muted">{project.location}</span>
-                      <span className="text-[10px] font-bold text-wf-primary">{project.progress}%</span>
-                    </div>
-                    <div className="text-xs">
-                      <p className="font-semibold">{project.type}</p>
-                      {project.rewards.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {project.rewards.slice(0, 2).map((reward, rewardIndex) => (
-                            <span key={rewardIndex} className="text-xs bg-wf-border px-2 py-1 rounded">
-                              {reward.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="w-full bg-wf-bg h-1.5 rounded-full overflow-hidden mt-2">
-                      <div 
-                        className="bg-wf-primary h-full" 
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No faction projects active</p>
-              </Card>
-            )}
-          </section>
-
-          {/* Kuva Siphons */}
-          <section>
-            <SectionHeader title="Kuva Siphons" />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : kuvaSiphons.length > 0 ? (
-              <div className="space-y-3">
-                {kuvaSiphons.slice(0, 3).map((siphon, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-mono text-wf-text-muted">{siphon.location}</span>
-                      <span className="text-[10px] font-bold text-wf-primary">{siphon.timeLeft}</span>
-                    </div>
-                    <div className="text-xs">
-                      <p className="font-semibold">{siphon.tier} {siphon.type}</p>
-                      <p className="text-wf-text-muted">{siphon.faction}</p>
-                      {siphon.isFlood && (
-                        <p className="text-wf-primary italic">Flood</p>
-                      )}
-                      {siphon.rewards.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {siphon.rewards.slice(0, 2).map((reward, rewardIndex) => (
-                            <span key={rewardIndex} className="text-xs bg-wf-border px-2 py-1 rounded">
-                              {reward.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No Kuva Siphons active</p>
-              </Card>
-            )}
-          </section>
-
-          {/* Invasions */}
-          <section>
-            <SectionHeader title="Active Invasions" />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/4"></div>
-                      <div className="h-3 bg-wf-border rounded w-full"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : invasions.length > 0 ? (
-              <div className="space-y-3">
-                {invasions.map((inv, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-mono text-wf-text-muted">{inv.node} ({inv.planet})</span>
-                      <span className="text-[10px] font-bold text-wf-primary">{inv.progress}%</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className={inv.progress > 50 ? 'text-wf-text-muted' : 'text-white'}>{inv.attackerReward}</span>
-                      <span className="text-wf-text-muted">vs</span>
-                      <span className={inv.progress <= 50 ? 'text-wf-text-muted' : 'text-white'}>{inv.defenderReward}</span>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No active invasions</p>
-              </Card>
-            )}
-          </section>
         </aside>
       </div>
+
+      {/* Bounties - Full Width Section */}
+      <section className="mt-8">
+        <SectionHeader title="Bounties" />
+        {loading ? (
+          <div className="space-y-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i}>
+                <div className="h-4 bg-wf-border rounded w-1/4 mb-3"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, j) => (
+                    <Card key={j} className="p-4">
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-3 bg-wf-border rounded w-2/3"></div>
+                        <div className="h-2 bg-wf-border rounded w-1/2"></div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : bounties.length > 0 ? (
+          <div className="space-y-6">
+            {bounties.map((bounty, i) => (
+              <div key={i}>
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-lg font-bold">{bounty.syndicate}</h3>
+                  <span className="text-wf-text-muted text-sm">{bounty.location}</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {bounty.jobs.map((job, jobIndex) => (
+                    <Card key={jobIndex} className="p-3">
+                      {job.title !== `Job ${job.id}` && (
+                        <div className="mb-2">
+                          <h4 className="text-sm font-semibold">{job.title}</h4>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs bg-wf-border px-2 py-1 rounded">
+                          Level {job.minLevel}-{job.maxLevel}
+                        </span>
+                        {job.rotation && (
+                          <span className="text-xs bg-wf-primary/20 px-2 py-1 rounded">
+                            Rotation {job.rotation}
+                          </span>
+                        )}
+                      </div>
+                      {job.xpAmounts.length > 0 && (
+                        <div className="text-xs text-wf-text-muted mb-1">
+                          +{job.xpAmounts[0]} XP
+                        </div>
+                      )}
+                      {job.rewards.length > 0 && (
+                        <div className="space-y-1">
+                          {job.rewards.slice(0, 3).map((reward, rewardIndex) => (
+                            <div key={rewardIndex} className="text-xs text-wf-text-muted flex justify-between">
+                              <span>{reward.name} {reward.count > 1 && `x${reward.count}`}</span>
+                              {reward.chance > 0 && (
+                                <span className="text-wf-primary">{Math.round(reward.chance * 100)}%</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-6">
+            <p className="text-wf-text-muted text-center">No bounties available</p>
+          </Card>
+        )}
+      </section>
 
       {/* Footer */}
       <footer className="mt-12 pt-8 border-t border-wf-border text-center">

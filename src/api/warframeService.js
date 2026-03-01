@@ -44,6 +44,30 @@ const parseTimestamp = (timestamp) => {
 };
 
 /**
+ * Formats time from first data point (0s reference) to human readable format
+ * @param {number} timestamp - Unix timestamp
+ * @param {number} baseTime - Base timestamp to calculate from (first data point)
+ * @returns {string} Formatted time from base
+ */
+export const formatTimeFromBase = (timestamp, baseTime) => {
+  if (!timestamp || !baseTime) return '0s';
+  
+  const diff = timestamp - baseTime;
+  
+  if (diff <= 0) return '0s';
+  
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  const minutes = Math.floor((diff % 3600) / 60);
+  const seconds = diff % 60;
+  
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+};
+
+/**
  * Formats time remaining from timestamp to human readable format
  * @param {number|string} expiry - Expiry timestamp (Unix timestamp)
  * @returns {string} Formatted time remaining
@@ -427,12 +451,14 @@ export const processInvasions = (worldState) => {
   }
   
   return worldState.invasions.data.map(invasion => {
-    const progressPercent = Math.round((invasion.score / invasion.endScore) * 100);
+    const progressPercent = Math.abs(Math.round((invasion.score / invasion.endScore) * 100));
     
     return {
       node: extractLocationFromNode(invasion.location),
       planet: extractPlanetFromNode(invasion.location),
       progress: progressPercent,
+      factionAttacker: invasion.factionAttacker || 'Unknown',
+      factionDefender: invasion.factionDefender || 'Unknown',
       attackerReward: formatRewards(invasion.rewardsAttacker),
       defenderReward: formatRewards(invasion.rewardsDefender)
     };
@@ -788,16 +814,44 @@ export const processFactionProjects = (worldState) => {
     return [];
   }
   
-  return worldState.factionprojects.data.map(project => ({
-    type: project.type,
-    progress: Math.round(project.progress * 100),
-    location: extractLocationFromNode(project.id),
-    rewards: project.rewards?.map(reward => ({
-      name: reward.name,
-      type: reward.type,
-      count: reward.count || 1
-    })) || []
-  }));
+  return worldState.factionprojects.data.map(project => {
+    // Progress is already a percentage (0-100), so keep two decimal places
+    const progressPercent = Math.round(project.progress * 100) / 100;
+    
+    // Calculate accumulated time from first data point
+    let accumulatedTime = 'Unknown';
+    if (project.progressHistory && project.progressHistory.length > 0) {
+      const firstEntry = project.progressHistory[0];
+      const baseTime = firstEntry[0];
+      const now = Math.floor(Date.now() / 1000);
+      accumulatedTime = formatTimeFromBase(now, baseTime);
+    }
+    
+    // Hardcoded faction mapping for faction projects
+    const factionMapping = {
+      'Balor Fomorian': 'Grineer',
+      'Razorback': 'Corpus',
+      'Ghoul Purge': 'Grineer',
+      'Infested Outbreak': 'Infested',
+      'Arbitration': 'None'
+    };
+    
+    const faction = factionMapping[project.type] || 'Unknown';
+    
+    return {
+      type: project.type,
+      faction: faction,
+      progress: progressPercent,
+      timeRemaining: accumulatedTime, // Changed from timeRemaining to accumulatedTime
+      progressHistory: project.progressHistory, // Include raw history for graph
+      location: 'System-wide', // Faction projects are system-wide events
+      rewards: project.rewards?.map(reward => ({
+        name: reward.name,
+        type: reward.type,
+        count: reward.count || 1
+      })) || []
+    };
+  });
 };
 
 /**
@@ -835,20 +889,61 @@ export const processBounties = (worldState) => {
     return [];
   }
   
-  return worldState.bounties.data.map(bounty => ({
+  const sortOrder = [
+    'Ostron',
+    'Solaris United', 
+    'Vox Solaris',
+    'Entrati',
+    'Cavia',
+    'The Holdfasts'
+  ];
+  
+  // Bounty location mapping
+  const bountyLocations = {
+    'Ostron': 'Cetus, Earth',
+    'Solaris United': 'Fortuna, Venus',
+    'Vox Solaris': 'Orb Vallis, Venus',
+    'Entrati': 'Necralisk, Deimos',
+    'Cavia': 'Sanctum Anatomica',
+    'The Holdfasts': 'Duviri'
+  };
+  
+  const processedBounties = worldState.bounties.data.map(bounty => ({
     syndicate: bounty.syndicate,
-    location: extractLocationFromNode(bounty.id),
+    location: bountyLocations[bounty.syndicate] || extractLocationFromNode(bounty.id),
     jobs: bounty.jobs?.map((job, index) => ({
       id: index + 1,
+      title: job.title || `Job ${index + 1}`,
+      rotation: job.rotation || '',
+      xpAmounts: job.xpAmounts || [],
       rewards: job.rewards?.map(reward => ({
         name: reward.name,
         type: reward.type,
-        count: reward.count || 1
+        count: reward.count || 1,
+        chance: reward.chance || 0
       })) || [],
       minLevel: job.minLevel || 0,
       maxLevel: job.maxLevel || 0
     })) || []
   }));
+  
+  // Sort bounties according to the specified order
+  return processedBounties.sort((a, b) => {
+    const aIndex = sortOrder.indexOf(a.syndicate);
+    const bIndex = sortOrder.indexOf(b.syndicate);
+    
+    // If both are in the sort order, sort by their positions
+    if (aIndex !== -1 && bIndex !== -1) {
+      return aIndex - bIndex;
+    }
+    
+    // If only one is in the sort order, put the one in order first
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+    
+    // If neither is in the sort order, sort alphabetically
+    return a.syndicate.localeCompare(b.syndicate);
+  });
 };
 
 /**
