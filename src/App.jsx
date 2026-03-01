@@ -148,6 +148,8 @@ export default function App() {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [fissureFilter, setFissureFilter] = useState('all');
+  const [steelPathFilter, setSteelPathFilter] = useState('all');
+  const [voidStormFilter, setVoidStormFilter] = useState('all');
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -199,6 +201,7 @@ export default function App() {
 
   const sortie = warframeData ? processSortie(warframeData) : null;
   const fissures = warframeData ? processFissures(warframeData, fissureFilter) : [];
+  const steelPathFissures = warframeData ? processFissures(warframeData, steelPathFilter, true) : [];
   const invasions = warframeData ? processInvasions(warframeData) : [];
   const nightwave = warframeData ? processNightwave(warframeData) : null;
   const voidTrader = warframeData ? processVoidTrader(warframeData) : null;
@@ -207,7 +210,7 @@ export default function App() {
   const alerts = warframeData?.alerts?.data || [];
   const archonHunt = warframeData?.sorties?.data?.[0] || null;
   const arbitrations = warframeData ? processArbitrations(warframeData) : null;
-  const voidStorms = warframeData ? processVoidStorms(warframeData) : [];
+  const voidStorms = warframeData ? processVoidStorms(warframeData, voidStormFilter) : [];
   const acolytes = warframeData ? processAcolytes(warframeData) : [];
   const bounties = warframeData ? processBounties(warframeData) : [];
   const factionProjects = warframeData ? processFactionProjects(warframeData) : [];
@@ -379,8 +382,8 @@ export default function App() {
                 {fissures.map((f, i) => (
                   <Card key={i} className="flex justify-between items-center p-4">
                     <div>
-                      <p className="text-sm font-bold">{f.tier} {f.type}</p>
-                      <p className="text-xs text-wf-text-muted">{f.node} ({f.planet})</p>
+                      <p className="text-sm font-bold">{f.tier} <span className="text-wf-text-muted text-xs">&nbsp;•&nbsp;</span> {f.type}</p>
+                      <p className="text-xs text-wf-text-muted">{f.node} ({f.faction})</p>
                     </div>
                     <span className="text-wf-primary font-mono text-xs">{f.timeLeft}</span>
                   </Card>
@@ -393,32 +396,98 @@ export default function App() {
             )}
           </section>
 
+          {/* Steel Path Fissures */}
+          <section>
+            <div className="flex justify-between items-center mb-4">
+              <SectionHeader title="Steel Path Fissures" />
+              <div className="flex gap-2">
+                {getRelicTiers().map(tier => (
+                  <button
+                    key={tier}
+                    onClick={() => setSteelPathFilter(tier)}
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                      steelPathFilter === tier
+                        ? 'bg-wf-primary text-black'
+                        : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                    }`}
+                  >
+                    {tier === 'all' ? 'All' : tier}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-wf-border rounded w-2/3"></div>
+                      <div className="h-3 bg-wf-border rounded w-1/2"></div>
+                      <div className="h-3 bg-wf-border rounded w-1/4"></div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : steelPathFissures.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {steelPathFissures.map((f, i) => (
+                  <Card key={i} className="flex justify-between items-center p-4">
+                    <div>
+                      <p className="text-sm font-bold">{f.tier} <span className="text-wf-text-muted text-xs">&nbsp;•&nbsp;</span> {f.type}</p>
+                      <p className="text-xs text-wf-text-muted">{f.node} ({f.faction})</p>
+                    </div>
+                    <span className="text-wf-primary font-mono text-xs">{f.timeLeft}</span>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-6">
+                <p className="text-wf-text-muted text-center">No Steel Path fissures available</p>
+              </Card>
+            )}
+          </section>
+
           {/* Void Storms */}
           <section>
-            <SectionHeader title="Void Storms" />
+            <div className="flex justify-between items-center mb-4">
+              <SectionHeader title="Void Storms" />
+              <div className="flex gap-2">
+                {['all', 'Lith', 'Meso', 'Neo', 'Axi', 'Grineer', 'Corpus'].map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setVoidStormFilter(filter)}
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                      voidStormFilter === filter
+                        ? 'bg-wf-primary text-black'
+                        : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                    }`}
+                  >
+                    {filter === 'all' ? 'All' : filter}
+                  </button>
+                ))}
+              </div>
+            </div>
             {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="p-4">
                     <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
+                      <div className="h-4 bg-wf-border rounded w-2/3"></div>
+                      <div className="h-3 bg-wf-border rounded w-1/2"></div>
+                      <div className="h-3 bg-wf-border rounded w-1/4"></div>
                     </div>
                   </Card>
                 ))}
               </div>
             ) : voidStorms.length > 0 ? (
-              <div className="space-y-3">
-                {voidStorms.slice(0, 3).map((storm, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-mono text-wf-text-muted">{storm.location}</span>
-                      <span className="text-[10px] font-bold text-wf-primary">{storm.timeLeft}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {voidStorms.map((storm, i) => (
+                  <Card key={i} className="flex justify-between items-center p-4">
+                    <div>
+                      <p className="text-sm font-bold">{storm.tier} <span className="text-wf-text-muted text-xs">&nbsp;•&nbsp;</span> {storm.missionType}</p>
+                      <p className="text-xs text-wf-text-muted">{storm.location} ({storm.faction})</p>
                     </div>
-                    <div className="text-xs">
-                      <p className="font-semibold">{storm.tier} {storm.type}</p>
-                      <p className="text-wf-text-muted">{storm.faction}</p>
-                    </div>
+                    <span className="text-wf-primary font-mono text-xs">{storm.timeLeft}</span>
                   </Card>
                 ))}
               </div>

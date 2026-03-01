@@ -621,21 +621,25 @@ export const processVoidTrader = (worldState) => {
 /**
  * Processes fissure data from Tenno Tools API
  * @param {Object} worldState - Full world state data from API
- * @param {string} [tierFilter='all'] - Optional filter for specific tier ('all', 'lith', 'meso', 'neo', 'axi', 'requiem', 'omnia', 'steelpath')
+ * @param {string} [tierFilter='all'] - Optional filter for specific tier ('all', 'lith', 'meso', 'neo', 'axi', 'requiem', 'omnia')
+ * @param {boolean} [steelPath=false] - Whether to filter for Steel Path fissures only
  * @returns {Array} Processed fissures data
  */
-export const processFissures = (worldState, tierFilter = 'all') => {
+export const processFissures = (worldState, tierFilter = 'all', steelPath = false) => {
   if (!worldState || !worldState.fissures || !worldState.fissures.data) {
     return [];
   }
   
-  const fissures = worldState.fissures.data.map(fissure => ({
-    tier: formatTierName(fissure.tier),
-    type: getMissionTypeName(fissure.missionType),
-    node: extractLocationFromNode(fissure.location),
-    planet: extractPlanetFromNode(fissure.location),
-    timeLeft: formatTimeRemaining(fissure.end)
-  }));
+  const fissures = worldState.fissures.data
+    .filter(fissure => steelPath ? fissure.hard : !fissure.hard)
+    .map(fissure => ({
+      tier: formatTierName(fissure.tier),
+      type: getMissionTypeName(fissure.missionType),
+      node: extractLocationFromNode(fissure.location),
+      planet: extractPlanetFromNode(fissure.location),
+      faction: fissure.faction || 'Unknown',
+      timeLeft: formatTimeRemaining(fissure.end)
+    }));
   
   // Filter by tier if specified
   if (tierFilter !== 'all') {
@@ -724,20 +728,31 @@ export const processArbitrations = (worldState) => {
 /**
  * Processes void storm data from Tenno Tools API
  * @param {Object} worldState - Full world state data from API
+ * @param {string} [filter='all'] - Optional filter for specific tier or faction ('all', 'lith', 'meso', 'neo', 'axi', 'grineer', 'corpus')
  * @returns {Array} Processed void storm data
  */
-export const processVoidStorms = (worldState) => {
+export const processVoidStorms = (worldState, filter = 'all') => {
   if (!worldState || !worldState.voidstorms || !worldState.voidstorms.data) {
     return [];
   }
   
-  return worldState.voidstorms.data.map(storm => ({
+  const storms = worldState.voidstorms.data.map(storm => ({
     location: extractLocationFromNode(storm.location),
     faction: storm.faction,
     missionType: getMissionTypeName(storm.missionType),
     tier: formatTierName(storm.tier),
     timeLeft: formatTimeRemaining(storm.end)
   }));
+  
+  // Filter by tier or faction if specified
+  if (filter !== 'all') {
+    return storms.filter(storm => 
+      storm.tier.toLowerCase() === filter.toLowerCase() ||
+      storm.faction.toLowerCase() === filter.toLowerCase()
+    );
+  }
+  
+  return storms;
 };
 
 /**
@@ -841,5 +856,5 @@ export const processBounties = (worldState) => {
  * @returns {Array} Array of available tiers
  */
 export const getRelicTiers = () => {
-  return ['all', 'Lith', 'Meso', 'Neo', 'Axi', 'Requiem', 'Omnia', 'Steel Path'];
+  return ['all', 'Lith', 'Meso', 'Neo', 'Axi', 'Requiem', 'Omnia'];
 };
