@@ -34,6 +34,7 @@ import {
   processAcolytes,
   processBounties,
   processFactionProjects,
+  processFlashSales,
   getRelicTiers,
   formatTimeRemaining,
   formatTimeAgo,
@@ -156,6 +157,8 @@ export default function App() {
   const [expandedDaily, setExpandedDaily] = useState(false);
   const [expandedWeekly, setExpandedWeekly] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState(false);
+  const [expandedFlashSales, setExpandedFlashSales] = useState(false);
+  const [selectedSection, setSelectedSection] = useState('all'); // 'all', 'fissures', 'steelPath', 'voidStorms'
   const [platform, setPlatform] = useState('pc');
   const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
 
@@ -218,6 +221,23 @@ export default function App() {
   // Process data for display using new API structure
   const cycles = warframeData ? processCycles(warframeData) : [];
 
+  // Update cycle times every second without re-rendering cards
+  const [cycleTimes, setCycleTimes] = useState({});
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (warframeData) {
+        // Update cycle times
+        const newCycleTimes = {};
+        const processedCycles = processCycles(warframeData);
+        processedCycles.forEach((cycle, index) => {
+          newCycleTimes[index] = cycle.timeLeft;
+        });
+        setCycleTimes(newCycleTimes);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [warframeData]);
+
   const sortie = warframeData ? processSortie(warframeData) : null;
   const fissures = warframeData ? processFissures(warframeData, fissureFilter) : [];
   const steelPathFissures = warframeData ? processFissures(warframeData, steelPathFilter, true) : [];
@@ -225,8 +245,9 @@ export default function App() {
   const nightwave = warframeData ? processNightwave(warframeData) : null;
   const voidTrader = warframeData ? processVoidTrader(warframeData) : null;
   const dailyDeals = warframeData ? processDailyDeals(warframeData) : [];
-  const events = warframeData?.news?.data || [];
-  const alerts = warframeData?.alerts?.data || [];
+  const events = warframeData?.news || [];
+  const flashSales = warframeData ? processFlashSales(warframeData) : [];
+  const alerts = warframeData?.alerts || [];
   const arbitrations = warframeData ? processArbitrations(warframeData) : null;
   const voidStorms = warframeData ? processVoidStorms(warframeData, voidStormFilter) : [];
   const acolytes = warframeData ? processAcolytes(warframeData) : [];
@@ -349,16 +370,16 @@ export default function App() {
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">
-                      {event.text || 'Event'}
+                      {event.message || 'Event'}
                     </p>
                     <p className="text-xs text-wf-text-muted mt-1">
-                      {event.eventEnd ? (
+                      {event.date ? (
                         <>
-                          Event • {formatTimeRemaining(event.eventEnd)}
+                          Posted: {formatTimeAgo(event.date)}
                         </>
                       ) : (
                         <>
-                          Posted: {formatTimeAgo(event.start)}
+                          Recent News
                         </>
                       )}
                     </p>
@@ -369,7 +390,7 @@ export default function App() {
                         rel="noopener noreferrer"
                         className="text-xs text-wf-primary hover:underline block mt-1 truncate"
                       >
-                        {event.eventEnd ? 'Event Details →' : 'Read More →'}
+                        Read More →
                       </a>
                     )}
                   </div>
@@ -407,7 +428,7 @@ export default function App() {
               <h3 className="text-xs font-semibold text-wf-text-muted uppercase mb-2">{cycle.location}</h3>
               <div className="flex items-center justify-between">
                 <span className="text-xl font-bold">{cycle.state}</span>
-                <span className="text-wf-primary text-sm font-mono">{cycle.timeLeft}</span>
+                <span className="text-wf-primary text-sm font-mono">{cycleTimes[i] || cycle.timeLeft}</span>
               </div>
             </Card>
           ))
@@ -449,12 +470,12 @@ export default function App() {
                       <span className="text-wf-primary font-mono text-xs">{inv.progress}%</span>
                     </div>
                     <div className="space-y-2">
-                      <div className={`text-xs p-2 rounded ${inv.progress > 50 ? 'bg-wf-border/50' : 'bg-wf-primary/20'}`}>
+                      <div className={`text-xs p-2 rounded ${inv.progress > 0 ? 'bg-wf-primary/20' : 'bg-wf-border/50'}`}>
                         <div className="font-semibold">{inv.factionAttacker}</div>
                         <div className="text-wf-text-muted">{inv.attackerReward}</div>
                       </div>
                       <div className="text-xs text-center text-wf-text-muted">vs</div>
-                      <div className={`text-xs p-2 rounded ${inv.progress <= 50 ? 'bg-wf-border/50' : 'bg-wf-primary/20'}`}>
+                      <div className={`text-xs p-2 rounded ${inv.progress <= 0 ? 'bg-wf-primary/20' : 'bg-wf-border/50'}`}>
                         <div className="font-semibold">{inv.factionDefender}</div>
                         <div className="text-wf-text-muted">{inv.defenderReward}</div>
                       </div>
@@ -469,7 +490,57 @@ export default function App() {
             )}
           </section>
 
+          {/* Section Selector */}
+          <section className="mt-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+              <SectionHeader title="Options" />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedSection('all')}
+                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                    selectedSection === 'all'
+                      ? 'bg-wf-primary text-black'
+                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setSelectedSection('fissures')}
+                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                    selectedSection === 'fissures'
+                      ? 'bg-wf-primary text-black'
+                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                  }`}
+                >
+                  Void Fissures
+                </button>
+                <button
+                  onClick={() => setSelectedSection('steelPath')}
+                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                    selectedSection === 'steelPath'
+                      ? 'bg-wf-primary text-black'
+                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                  }`}
+                >
+                  Steel Path Fissures
+                </button>
+                <button
+                  onClick={() => setSelectedSection('voidStorms')}
+                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                    selectedSection === 'voidStorms'
+                      ? 'bg-wf-primary text-black'
+                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                  }`}
+                >
+                  Void Storms
+                </button>
+              </div>
+            </div>
+          </section>
+
           {/* Void Fissures */}
+          {(selectedSection === 'all' || selectedSection === 'fissures') && (
           <section>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <SectionHeader title="Void Fissures" />
@@ -518,8 +589,10 @@ export default function App() {
               </Card>
             )}
           </section>
+          )}
 
           {/* Steel Path Fissures */}
+          {(selectedSection === 'all' || selectedSection === 'steelPath') && (
           <section>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <SectionHeader title="Steel Path Fissures" />
@@ -568,8 +641,10 @@ export default function App() {
               </Card>
             )}
           </section>
+          )}
 
           {/* Void Storms */}
+          {(selectedSection === 'all' || selectedSection === 'voidStorms') && (
           <section>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <SectionHeader title="Void Storms" />
@@ -618,6 +693,7 @@ export default function App() {
               </Card>
             )}
           </section>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -641,19 +717,25 @@ export default function App() {
                 {alerts.map((alert, i) => (
                   <Card key={i} className="p-3">
                     <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-mono text-wf-text-muted">{alert.location}</span>
+                      <span className="text-xs font-mono text-wf-text-muted">{alert.mission?.node || 'Unknown'}</span>
                       <span className="text-sm font-mono text-wf-primary">
-                        {formatTimeRemaining(alert.end)}
+                        {formatTimeRemaining(alert.expiry)}
                       </span>
                     </div>
                     <div className="text-xs">
-                      <p className="font-semibold">{alert.missionType}</p>
-                      {alert.rewards?.credits && (
-                        <p className="text-wf-primary">{alert.rewards.credits} credits</p>
+                      <p className="font-semibold">{alert.mission?.description || 'Alert Mission'}</p>
+                      <p className="text-wf-text-muted">{alert.mission?.type || 'Unknown'} • {alert.mission?.faction || 'Unknown'}</p>
+                      {alert.mission?.reward?.credits && (
+                        <p className="text-wf-primary">{alert.mission.reward.credits} credits</p>
                       )}
-                      {alert.rewards?.items && alert.rewards.items.length > 0 && (
+                      {alert.mission?.reward?.items && alert.mission.reward.items.length > 0 && (
                         <p className="text-wf-text-muted">
-                          {alert.rewards.items.map(item => item.name).join(', ')}
+                          {alert.mission.reward.items.join(', ')}
+                        </p>
+                      )}
+                      {alert.mission?.reward?.countedItems && alert.mission.reward.countedItems.length > 0 && (
+                        <p className="text-wf-text-muted">
+                          {alert.mission.reward.countedItems.map(item => `${item.count}x ${item.type}`).join(', ')}
                         </p>
                       )}
                     </div>
@@ -912,7 +994,7 @@ export default function App() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="text-sm font-semibold">{deal.item}</p>
-                        <p className="text-xs text-wf-text-muted">{deal.amountTotal - deal.amountSold}/{deal.amountTotal} sold</p>
+                        <p className="text-xs text-wf-text-muted">{deal.amountTotal - deal.amountSold}/{deal.amountTotal} remaining</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-wf-primary">
@@ -924,11 +1006,22 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                    <div className="w-full bg-wf-bg h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-wf-bg h-1.5 rounded-full relative group cursor-pointer">
                       <div
-                        className="bg-wf-primary h-full"
+                        className="bg-wf-primary h-full transition-all duration-200 rounded-full"
                         style={{ width: `${((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100}%` }}
                       />
+                      <div 
+                        className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                        style={{ 
+                          left: `${Math.min(((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100, 85)}%`,
+                          transform: 'translateX(-50%)'
+                        }}
+                      >
+                        <span className="text-xs font-semibold text-wf-primary px-2 py-1 rounded shadow-lg whitespace-nowrap" style={{ backgroundColor: '#262627' }}>
+                          {deal.amountSold} sold
+                        </span>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -1095,6 +1188,64 @@ export default function App() {
 
         </aside>
       </div>
+
+      {/* Flash Sales - Full Width Section */}
+      <section className="mt-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <SectionHeader title="Flash Sales" />
+          <div className="flex gap-2">
+            {flashSales.length > 12 && (
+              <button
+                onClick={() => setExpandedFlashSales(!expandedFlashSales)}
+                className={`flex items-center justify-center px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                  expandedFlashSales
+                    ? 'bg-wf-primary/90 text-black'
+                    : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
+                }`}
+              >
+                {expandedFlashSales ? 'Show Less' : `View All (${flashSales.length})`}
+              </button>
+            )}
+          </div>
+        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="p-3">
+                <div className="animate-pulse space-y-2">
+                  <div className="h-4 bg-wf-border rounded w-3/4"></div>
+                  <div className="h-3 bg-wf-border rounded w-1/2"></div>
+                  <div className="h-3 bg-wf-border rounded w-2/3"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : flashSales.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {flashSales.slice(0, expandedFlashSales ? undefined : 12).map((sale, i) => (
+              <Card key={sale.id} className="p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">
+                      {sale.message || 'Flash Sale'}
+                    </p>
+                    <p className="text-xs text-wf-text-muted mt-1">
+                      {formatTimeRemaining(sale.expiry)}
+                      {sale.discount && (
+                        <span className="text-wf-primary ml-1">({sale.discount}% off)</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-6">
+            <p className="text-wf-text-muted text-center">No flash sales available</p>
+          </Card>
+        )}
+      </section>
 
       {/* Bounties - Full Width Section */}
       <section className="mt-8">

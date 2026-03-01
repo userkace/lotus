@@ -1,18 +1,18 @@
 /**
  * Warframe API Service
- * Handles fetching and processing data from Tenno Tools API
+ * Handles fetching and processing data from Warframe Stat API
  */
 
-const API_BASE_URL = 'https://api.tenno.tools/worldstate/pc';
+const API_BASE_URL = 'https://api.warframestat.us';
 
 /**
- * Fetches all Warframe world state data from Tenno Tools API
+ * Fetches all Warframe world state data from Warframe Stat API
  * @param {string} [platform='pc'] - Platform to fetch data for (pc, ps4, xb1, ns)
  * @returns {Promise<Object>} Raw Warframe world state data
  */
 export const fetchWarframeData = async (platform = 'pc') => {
   try {
-    const response = await fetch(`https://api.tenno.tools/worldstate/${platform}`);
+    const response = await fetch(`${API_BASE_URL}/${platform}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -27,20 +27,28 @@ export const fetchWarframeData = async (platform = 'pc') => {
 };
 
 /**
- * Converts Unix timestamp from API to JavaScript Date
- * @param {number|string} timestamp - Unix timestamp (number or string)
+ * Converts timestamp from API to JavaScript Date
+ * @param {number|string} timestamp - Unix timestamp (seconds) or ISO 8601 string
  * @returns {Date} JavaScript Date object
  */
 const parseTimestamp = (timestamp) => {
   if (!timestamp) return new Date();
 
-  // Handle both number and string formats
-  const timestampNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+  // If it's a string, check if it's an ISO 8601 format
+  if (typeof timestamp === 'string') {
+    // Check if it's an ISO 8601 date string (contains 'T' and 'Z' or timezone)
+    if (timestamp.includes('T') && (timestamp.includes('Z') || timestamp.includes('+') || timestamp.includes('-'))) {
+      return new Date(timestamp);
+    }
+    // Otherwise, treat as Unix timestamp string
+    const timestampNum = parseInt(timestamp);
+    if (isNaN(timestampNum)) return new Date();
+    return new Date(timestampNum * 1000);
+  }
 
-  if (isNaN(timestampNum)) return new Date();
-
-  // Unix timestamps are in seconds, JavaScript Date expects milliseconds
-  return new Date(timestampNum * 1000);
+  // Handle numeric Unix timestamp (seconds)
+  if (isNaN(timestamp)) return new Date();
+  return new Date(timestamp * 1000);
 };
 
 /**
@@ -69,7 +77,7 @@ export const formatTimeFromBase = (timestamp, baseTime) => {
 
 /**
  * Formats time remaining from timestamp to human readable format
- * @param {number|string} expiry - Expiry timestamp (Unix timestamp)
+ * @param {number|string} expiry - Expiry timestamp (Unix timestamp or ISO 8601 string)
  * @returns {string} Formatted time remaining
  */
 export const formatTimeRemaining = (expiry) => {
@@ -79,7 +87,16 @@ export const formatTimeRemaining = (expiry) => {
   const expiryTime = parseTimestamp(expiry);
   const diff = expiryTime - now;
 
-  if (diff <= 0) return 'Expired';
+  if (diff <= 0) {
+    // For recently expired items (within 1 hour), show negative time
+    if (diff > -3600000) { // 1 hour in milliseconds
+      const absDiff = Math.abs(diff);
+      const minutes = Math.floor(absDiff / (1000 * 60));
+      const seconds = Math.floor((absDiff % (1000 * 60)) / 1000);
+      return `Expired: -${minutes}m ${seconds}s`;
+    }
+    return 'Expired';
+  }
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -192,94 +209,106 @@ const extractMissionType = (levelPath) => {
 };
 
 /**
- * Processes cycle data from Tenno Tools API
+ * Processes cycle data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed cycle data array
  */
 export const processCycles = (worldState) => {
-  if (!worldState || !worldState.daynight || !worldState.daynight.data) {
+  if (!worldState) {
     return [];
   }
 
   const cycles = [];
-  const now = new Date();
 
-  worldState.daynight.data.forEach(cycle => {
-    // Calculate cycle position based on the cycle start time and length
-    const cycleStart = parseTimestamp(cycle.start);
-    const cycleLengthSeconds = cycle.length;
-    const cycleLength = cycleLengthSeconds * 1000; // Convert to milliseconds
-
-    // Calculate how much time has passed since cycle started
-    const elapsed = now.getTime() - cycleStart.getTime();
-    const cycleProgress = (elapsed % cycleLength) / cycleLength;
-
-    // Determine if it's day or night (dayStart and dayEnd are in seconds within the cycle)
-    const dayStartSeconds = cycle.dayStart;
-    const dayEndSeconds = cycle.dayEnd;
-    const isDay = cycleProgress >= (dayStartSeconds / cycleLengthSeconds) && cycleProgress <= (dayEndSeconds / cycleLengthSeconds);
-
-    // Calculate time until next state change
-    let timeUntilChange;
-    if (isDay) {
-      timeUntilChange = (dayEndSeconds * 1000) - (elapsed % cycleLength);
-    } else {
-      timeUntilChange = cycleLength - (elapsed % cycleLength);
-      if (cycleProgress < (dayStartSeconds / cycleLengthSeconds)) {
-        timeUntilChange = (dayStartSeconds * 1000) - (elapsed % cycleLength);
-      }
-    }
-
-    // Format location name
-    const locationNames = {
-      'cetus': 'Cetus (Earth)',
-      'fortuna': 'Orb Vallis (Venus)',
-      'earth': 'Earth',
-      'vallis': 'Orb Vallis (Venus)',
-      'cambion': 'Cambion Drift (Deimos)'
-    };
-
-    const stateNames = {
-      'cetus': isDay ? 'Day' : 'Night',
-      'fortuna': isDay ? 'Warm' : 'Cold',
-      'earth': isDay ? 'Day' : 'Night',
-      'vallis': isDay ? 'Warm' : 'Cold',
-      'cambion': isDay ? 'Vome' : 'Wisp'
-    };
-
+  // Process Cetus cycle (Earth)
+  if (worldState.cetusCycle) {
+    const cetus = worldState.cetusCycle;
     cycles.push({
-      location: locationNames[cycle.id] || `${cycle.id}`,
-      state: stateNames[cycle.id] || (isDay ? 'Day' : 'Night'),
-      timeLeft: formatTimeRemaining(Math.floor((now.getTime() + timeUntilChange) / 1000))
+      location: 'Cetus (Earth)',
+      state: cetus.isDay ? 'Day' : 'Night',
+      timeLeft: formatTimeRemaining(cetus.expiry)
     });
-  });
+  }
+
+  // Process Orb Vallis cycle (Venus)
+  if (worldState.vallisCycle) {
+    const vallis = worldState.vallisCycle;
+    cycles.push({
+      location: 'Orb Vallis (Venus)',
+      state: vallis.isWarm ? 'Warm' : 'Cold',
+      timeLeft: formatTimeRemaining(vallis.expiry)
+    });
+  }
+
+  // Process Cambion Drift cycle (Deimos)
+  if (worldState.cambionCycle) {
+    const cambion = worldState.cambionCycle;
+    cycles.push({
+      location: 'Cambion Drift (Deimos)',
+      state: cambion.state === 'vome' ? 'Vome' : 'Fass',
+      timeLeft: formatTimeRemaining(cambion.expiry)
+    });
+  }
+
+  // Process Earth cycle (redundant - same as Cetus/Earth)
+  // Removed to avoid duplication with Cetus cycle
 
   return cycles;
 };
 
 /**
- * Processes sortie data from Tenno Tools API
+ * Processes flash sales data from Warframe Stat API
+ * @param {Object} worldState - Full world state data from API
+ * @returns {Array} Processed flash sales data
+ */
+export const processFlashSales = (worldState) => {
+  if (!worldState || !worldState.flashSales) {
+    return [];
+  }
+
+  const now = new Date();
+  
+  return worldState.flashSales
+    .filter(sale => {
+      const expiry = new Date(sale.expiry);
+      return expiry > now; // Only include active sales
+    })
+    .map(sale => ({
+      id: sale.id,
+      message: sale.item,
+      link: null,
+      date: sale.activation,
+      expiry: sale.expiry,
+      discount: sale.discount,
+      isFlashSale: true,
+      priority: false
+    }))
+    .sort((a, b) => new Date(a.expiry) - new Date(b.expiry)); // Sort by earliest expiry first (least time left)
+};
+
+/**
+ * Processes sortie data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Object} Processed sortie data
  */
 export const processSortie = (worldState) => {
-  if (!worldState || !worldState.sorties || !worldState.sorties.data || worldState.sorties.data.length === 0) {
+  if (!worldState || !worldState.sortie) {
     return null;
   }
 
-  const sortie = worldState.sorties.data[0];
+  const sortie = worldState.sortie;
 
-  const missions = sortie.missions.map((mission, index) => ({
+  const missions = sortie.variants.map((mission, index) => ({
     id: String(index + 1).padStart(2, '0'),
-    type: getMissionTypeName(mission.missionType),
-    modifier: formatModifierName(mission.modifier),
-    location: extractLocationFromNode(mission.location)
+    type: mission.missionType || 'Unknown',
+    modifier: mission.modifier || 'No Modifiers',
+    location: mission.node || 'Unknown'
   }));
 
   return {
-    boss: formatBossName(sortie.bossName),
+    boss: sortie.boss || 'Unknown Boss',
     missionType: 'Sortie',
-    timeLeft: formatTimeRemaining(sortie.end),
+    timeLeft: formatTimeRemaining(sortie.expiry),
     missions
   };
 };
@@ -445,47 +474,50 @@ const getConquestTypeName = (type) => {
 };
 
 /**
- * Processes daily deals from Tenno Tools API
+ * Processes daily deals from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed daily deals
  */
 export const processDailyDeals = (worldState) => {
-  if (!worldState || !worldState.dailydeals || !worldState.dailydeals.data) {
+  if (!worldState || !worldState.dailyDeals) {
     return [];
   }
 
-  return worldState.dailydeals.data.map(deal => ({
-    item: deal.item?.name || 'Unknown Item',
+  return worldState.dailyDeals.map(deal => ({
+    item: deal.item || 'Unknown Item',
     originalPrice: deal.originalPrice || 0,
-    salePrice: deal.price || 0,
-    discount: Math.round(((deal.originalPrice - deal.price) / deal.originalPrice) * 100) || 0,
-    amountTotal: deal.stock || 0,
+    salePrice: deal.salePrice || 0,
+    discount: Math.round(((deal.originalPrice - deal.salePrice) / deal.originalPrice) * 100) || 0,
+    amountTotal: deal.total || 0,
     amountSold: deal.sold || 0,
-    timeLeft: formatTimeRemaining(deal.end)
+    timeLeft: formatTimeRemaining(deal.expiry)
   }));
 };
 
 /**
- * Processes invasion data from Tenno Tools API
+ * Processes invasion data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed invasions data
  */
 export const processInvasions = (worldState) => {
-  if (!worldState || !worldState.invasions || !worldState.invasions.data) {
+  if (!worldState || !worldState.invasions) {
     return [];
   }
 
-  return worldState.invasions.data.map(invasion => {
-    const progressPercent = Math.abs(Math.round((invasion.score / invasion.endScore) * 100));
+  // Filter out completed invasions
+  const activeInvasions = worldState.invasions.filter(invasion => !invasion.completed);
+
+  return activeInvasions.map(invasion => {
+    const progressPercent = Math.round(invasion.completion || 0);
 
     return {
-      node: extractLocationFromNode(invasion.location),
-      planet: extractPlanetFromNode(invasion.location),
+      node: invasion.node || 'Unknown',
+      planet: extractPlanetFromNode(invasion.node),
       progress: progressPercent,
-      factionAttacker: invasion.factionAttacker || 'Unknown',
-      factionDefender: invasion.factionDefender || 'Unknown',
-      attackerReward: formatRewards(invasion.rewardsAttacker),
-      defenderReward: formatRewards(invasion.rewardsDefender)
+      factionAttacker: invasion.attacker?.faction || 'Unknown',
+      factionDefender: invasion.defender?.faction || 'Unknown',
+      attackerReward: formatRewards(invasion.attacker?.reward),
+      defenderReward: formatRewards(invasion.defender?.reward)
     };
   });
 };
@@ -499,11 +531,17 @@ const formatRewards = (rewards) => {
   if (!rewards) return 'No Rewards';
 
   const items = [];
-  if (rewards.credits) {
+  if (rewards.credits && rewards.credits > 0) {
     items.push(`${rewards.credits} credits`);
   }
   if (rewards.items && rewards.items.length > 0) {
-    items.push(rewards.items.map(item => item.name).join(', '));
+    items.push(rewards.items.join(', '));
+  }
+  if (rewards.countedItems && rewards.countedItems.length > 0) {
+    const countedItems = rewards.countedItems.map(item => 
+      item.count > 1 ? `${item.count}x ${item.type}` : item.type
+    );
+    items.push(countedItems.join(', '));
   }
 
   return items.length > 0 ? items.join(' + ') : 'No Rewards';
@@ -526,12 +564,12 @@ const getRewardForFaction = (faction, progress) => {
 };
 
 /**
- * Processes season/challenge data (Nightwave equivalent) from Tenno Tools API
+ * Processes season/challenge data (Nightwave) from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Object} Processed nightwave data
  */
 export const processNightwave = (worldState) => {
-  if (!worldState || !worldState.challenges || !worldState.challenges.data || worldState.challenges.data.length === 0) {
+  if (!worldState || !worldState.nightwave) {
     return {
       progress: 'No Active Season',
       progressPercent: 0,
@@ -539,25 +577,25 @@ export const processNightwave = (worldState) => {
     };
   }
 
-  const season = worldState.challenges.data[0];
+  const nightwave = worldState.nightwave;
 
   // Extract challenges and sort by daily/weekly
-  const challenges = (season.challenges || []);
+  const challenges = (nightwave.activeChallenges || []);
   const dailyChallenges = challenges
-    .filter(challenge => challenge.daily)
+    .filter(challenge => challenge.isDaily)
     .map(challenge => ({
-      name: challenge.description || 'Unknown Challenge',
-      description: challenge.description || 'Complete this challenge to earn rewards',
+      name: challenge.title || 'Unknown Challenge',
+      description: challenge.desc || 'Complete this challenge to earn rewards',
       isElite: false,
       type: 'daily'
     }));
 
   const weeklyChallenges = challenges
-    .filter(challenge => !challenge.daily)
+    .filter(challenge => !challenge.isDaily)
     .map(challenge => ({
-      name: challenge.description || 'Unknown Challenge',
-      description: challenge.description || 'Complete this challenge to earn rewards',
-      isElite: true,
+      name: challenge.title || 'Unknown Challenge',
+      description: challenge.desc || 'Complete this challenge to earn rewards',
+      isElite: challenge.isElite || false,
       type: 'weekly'
     }));
 
@@ -565,12 +603,10 @@ export const processNightwave = (worldState) => {
   const sortedChallenges = [...dailyChallenges, ...weeklyChallenges];
 
   // Calculate progress based on season and phase
-  const seasonNumber = season.season || 0;
-  const phase = season.phase || 0;
-  const progressPercent = Math.min(100, Math.round((phase + 1) * 20)); // Approximate progress
+  const progressPercent = Math.min(100, Math.round((nightwave.phase / nightwave.maxPhases) * 100));
 
   return {
-    progress: `Season ${seasonNumber} - Phase ${phase + 1}`,
+    progress: `Season ${nightwave.season} - Phase ${nightwave.phase}`,
     progressPercent,
     challenges: sortedChallenges
   };
@@ -639,30 +675,30 @@ const getChallengeDescription = (challengePath) => {
 };
 
 /**
- * Processes void trader data from Tenno Tools API
+ * Processes void trader data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Object} Processed void trader data
  */
 export const processVoidTrader = (worldState) => {
-  if (!worldState || !worldState.voidtraders || !worldState.voidtraders.data || worldState.voidtraders.data.length === 0) {
+  if (!worldState || !worldState.voidTrader) {
     return null;
   }
 
-  const trader = worldState.voidtraders.data[0];
+  const trader = worldState.voidTrader;
   const now = new Date();
-  const activation = parseTimestamp(trader.start);
-  const expiry = parseTimestamp(trader.end);
+  const activation = parseTimestamp(trader.activation);
+  const expiry = parseTimestamp(trader.expiry);
   const isActive = now >= activation && now <= expiry;
 
   return {
-    character: trader.name || 'Baro\'Ki Teel',
-    location: extractLocationFromNode(trader.location),
+    character: trader.character || 'Baro\'Ki Teel',
+    location: trader.location || 'Unknown',
     active: isActive,
     activation,
     expiry,
-    timeLeft: formatTimeRemaining(trader.end),
-    inventory: trader.items?.map(item => ({
-      name: item.name,
+    timeLeft: formatTimeRemaining(trader.expiry),
+    inventory: trader.inventory?.map(item => ({
+      name: item.item,
       ducats: item.ducats,
       credits: item.credits
     })) || []
@@ -670,26 +706,26 @@ export const processVoidTrader = (worldState) => {
 };
 
 /**
- * Processes fissure data from Tenno Tools API
+ * Processes fissure data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @param {string} [tierFilter='all'] - Optional filter for specific tier ('all', 'lith', 'meso', 'neo', 'axi', 'requiem', 'omnia')
  * @param {boolean} [steelPath=false] - Whether to filter for Steel Path fissures only
  * @returns {Array} Processed fissures data
  */
 export const processFissures = (worldState, tierFilter = 'all', steelPath = false) => {
-  if (!worldState || !worldState.fissures || !worldState.fissures.data) {
+  if (!worldState || !worldState.fissures) {
     return [];
   }
 
-  const fissures = worldState.fissures.data
-    .filter(fissure => steelPath ? fissure.hard : !fissure.hard)
+  const fissures = worldState.fissures
+    .filter(fissure => steelPath ? fissure.isHard : !fissure.isHard)
     .map(fissure => ({
-      tier: formatTierName(fissure.tier),
-      type: getMissionTypeName(fissure.missionType),
-      node: extractLocationFromNode(fissure.location),
-      planet: extractPlanetFromNode(fissure.location),
-      faction: fissure.faction || 'Unknown',
-      timeLeft: formatTimeRemaining(fissure.end)
+      tier: fissure.tier || 'Unknown',
+      type: fissure.missionType || 'Unknown',
+      node: fissure.node || 'Unknown',
+      planet: extractPlanetFromNode(fissure.node),
+      faction: fissure.enemy || 'Unknown',
+      timeLeft: formatTimeRemaining(fissure.expiry)
     }));
 
   // Filter by tier if specified
@@ -752,24 +788,24 @@ const extractPlanetFromNode = (node) => {
 };
 
 /**
- * Processes arbitration data from Tenno Tools API
+ * Processes arbitration data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Object} Processed arbitration data
  */
 export const processArbitrations = (worldState) => {
-  if (!worldState || !worldState.arbitrations || !worldState.arbitrations.data || worldState.arbitrations.data.length === 0) {
+  if (!worldState || !worldState.arbitration) {
     return null;
   }
 
-  const arbitration = worldState.arbitrations.data[0];
+  const arbitration = worldState.arbitration;
 
   return {
-    type: getMissionTypeName(arbitration.missionType),
-    location: extractLocationFromNode(arbitration.location),
-    faction: arbitration.faction,
-    timeLeft: formatTimeRemaining(arbitration.end),
+    type: arbitration.type || 'Unknown',
+    location: arbitration.node || 'Unknown',
+    faction: arbitration.enemy || 'Unknown',
+    timeLeft: formatTimeRemaining(arbitration.expiry),
     rewards: arbitration.rewards?.map(reward => ({
-      name: reward.name,
+      name: reward.item,
       type: reward.type,
       chance: reward.chance
     })) || []
@@ -777,22 +813,25 @@ export const processArbitrations = (worldState) => {
 };
 
 /**
- * Processes void storm data from Tenno Tools API
+ * Processes void storm data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @param {string} [filter='all'] - Optional filter for specific tier or faction ('all', 'lith', 'meso', 'neo', 'axi', 'grineer', 'corpus')
  * @returns {Array} Processed void storm data
  */
 export const processVoidStorms = (worldState, filter = 'all') => {
-  if (!worldState || !worldState.voidstorms || !worldState.voidstorms.data) {
+  if (!worldState || !worldState.fissures) {
     return [];
   }
 
-  const storms = worldState.voidstorms.data.map(storm => ({
-    location: extractLocationFromNode(storm.location),
-    faction: storm.faction,
-    missionType: getMissionTypeName(storm.missionType),
-    tier: formatTierName(storm.tier),
-    timeLeft: formatTimeRemaining(storm.end)
+  // Filter fissures that are void storms (isStorm: true)
+  const voidStormFissures = worldState.fissures.filter(fissure => fissure.isStorm);
+  
+  const storms = voidStormFissures.map(storm => ({
+    location: storm.node || 'Unknown',
+    faction: storm.enemy || 'Unknown',
+    missionType: storm.missionType || 'Unknown',
+    tier: storm.tier || 'Unknown',
+    timeLeft: formatTimeRemaining(storm.expiry)
   }));
 
   // Filter by tier or faction if specified
@@ -807,22 +846,22 @@ export const processVoidStorms = (worldState, filter = 'all') => {
 };
 
 /**
- * Processes acolyte data from Tenno Tools API
+ * Processes acolyte data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed acolyte data
  */
 export const processAcolytes = (worldState) => {
-  if (!worldState || !worldState.acolytes || !worldState.acolytes.data) {
+  if (!worldState || !worldState.persistentEnemies) {
     return [];
   }
 
-  return worldState.acolytes.data.map(acolyte => ({
-    name: acolyte.name,
-    health: Math.round(acolyte.health * 100),
-    location: extractLocationFromNode(acolyte.location),
-    discovered: acolyte.discovered,
+  return worldState.persistentEnemies.map(acolyte => ({
+    name: acolyte.name || 'Unknown',
+    health: Math.round((acolyte.healthPercent || 0) * 100),
+    location: acolyte.node || 'Unknown',
+    discovered: acolyte.isDiscovered || false,
     rewards: acolyte.rewards?.map(reward => ({
-      name: reward.name,
+      name: reward.item,
       type: reward.type,
       chance: reward.chance
     })) || []
@@ -830,27 +869,18 @@ export const processAcolytes = (worldState) => {
 };
 
 /**
- * Processes faction project data from Tenno Tools API
+ * Processes faction project data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed faction project data
  */
 export const processFactionProjects = (worldState) => {
-  if (!worldState || !worldState.factionprojects || !worldState.factionprojects.data) {
+  if (!worldState || !worldState.events) {
     return [];
   }
 
-  return worldState.factionprojects.data.map(project => {
+  return worldState.events.map(project => {
     // Progress is already a percentage (0-100), so keep two decimal places
-    const progressPercent = Math.round(project.progress * 100) / 100;
-
-    // Calculate accumulated time from first data point
-    let accumulatedTime = 'Unknown';
-    if (project.progressHistory && project.progressHistory.length > 0) {
-      const firstEntry = project.progressHistory[0];
-      const baseTime = firstEntry[0];
-      const now = Math.floor(Date.now() / 1000);
-      accumulatedTime = formatTimeFromBase(now, baseTime);
-    }
+    const progressPercent = Math.round((project.progress || 0) * 100) / 100;
 
     // Hardcoded faction mapping for faction projects
     const factionMapping = {
@@ -861,17 +891,16 @@ export const processFactionProjects = (worldState) => {
       'Arbitration': 'None'
     };
 
-    const faction = factionMapping[project.type] || 'Unknown';
+    const faction = factionMapping[project.description] || 'Unknown';
 
     return {
-      type: project.type,
+      type: project.description || 'Unknown',
       faction: faction,
       progress: progressPercent,
-      timeRemaining: accumulatedTime, // Changed from timeRemaining to accumulatedTime
-      progressHistory: project.progressHistory, // Include raw history for graph
+      timeRemaining: formatTimeRemaining(project.expiry),
       location: 'System-wide', // Faction projects are system-wide events
       rewards: project.rewards?.map(reward => ({
-        name: reward.name,
+        name: reward.item,
         type: reward.type,
         count: reward.count || 1
       })) || []
@@ -880,24 +909,24 @@ export const processFactionProjects = (worldState) => {
 };
 
 /**
- * Processes Kuva siphon data from Tenno Tools API
+ * Processes Kuva siphon data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed Kuva siphon data
  */
 export const processKuvaSiphons = (worldState) => {
-  if (!worldState || !worldState.kuvasiphons || !worldState.kuvasiphons.data) {
+  if (!worldState || !worldState.kuva) {
     return [];
   }
 
-  return worldState.kuvasiphons.data.map(siphon => ({
-    location: extractLocationFromNode(siphon.location),
-    faction: siphon.faction,
-    missionType: getMissionTypeName(siphon.missionType),
-    tier: formatTierName(siphon.tier),
-    isFlood: siphon.flood,
-    timeLeft: formatTimeRemaining(siphon.end),
+  return worldState.kuva.map(siphon => ({
+    location: siphon.node || 'Unknown',
+    faction: siphon.enemy || 'Unknown',
+    missionType: siphon.missionType || 'Unknown',
+    tier: siphon.tier || 'Unknown',
+    isFlood: siphon.isFlood || false,
+    timeLeft: formatTimeRemaining(siphon.expiry),
     rewards: siphon.rewards?.map(reward => ({
-      name: reward.name,
+      name: reward.item,
       type: reward.type,
       chance: reward.chance
     })) || []
@@ -905,12 +934,12 @@ export const processKuvaSiphons = (worldState) => {
 };
 
 /**
- * Processes bounty data from Tenno Tools API
+ * Processes bounty data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Array} Processed bounty data
  */
 export const processBounties = (worldState) => {
-  if (!worldState || !worldState.bounties || !worldState.bounties.data) {
+  if (!worldState || !worldState.syndicateMissions) {
     return [];
   }
 
@@ -933,16 +962,16 @@ export const processBounties = (worldState) => {
     'The Holdfasts': 'Duviri'
   };
 
-  const processedBounties = worldState.bounties.data.map(bounty => ({
-    syndicate: bounty.syndicate,
-    location: bountyLocations[bounty.syndicate] || extractLocationFromNode(bounty.id),
-    jobs: bounty.jobs?.map((job, index) => ({
+  const processedBounties = worldState.syndicateMissions.map(bounty => ({
+    syndicate: bounty.syndicate || 'Unknown',
+    location: bountyLocations[bounty.syndicate] || bounty.node || 'Unknown',
+    jobs: bounty.missions?.map((job, index) => ({
       id: index + 1,
-      title: job.title || `Job ${index + 1}`,
-      rotation: job.rotation || '',
+      title: job.description || `Job ${index + 1}`,
+      rotation: job.type || '',
       xpAmounts: job.xpAmounts || [],
       rewards: job.rewards?.map(reward => ({
-        name: reward.name,
+        name: reward.item,
         type: reward.type,
         count: reward.count || 1,
         chance: reward.chance || 0
