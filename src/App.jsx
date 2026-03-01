@@ -238,7 +238,7 @@ export default function App() {
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-wf-border pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-wf-primary">SYSTEM_STATUS</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-wf-primary">LOTUS_LINK</h1>
           <p className="text-wf-text-muted text-sm mt-1 uppercase tracking-widest">Origin System Real-time Feed</p>
         </div>
         <div className="mt-4 md:mt-0 flex items-center gap-4">
