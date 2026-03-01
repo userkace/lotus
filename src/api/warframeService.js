@@ -1,17 +1,18 @@
 /**
  * Warframe API Service
- * Handles fetching and processing data from official Warframe API
+ * Handles fetching and processing data from Tenno Tools API
  */
 
-const API_BASE_URL = '/api/warframe';
+const API_BASE_URL = 'https://api.tenno.tools/worldstate/pc';
 
 /**
- * Fetches all Warframe world state data from official API
+ * Fetches all Warframe world state data from Tenno Tools API
+ * @param {string} [platform='pc'] - Platform to fetch data for (pc, ps4, xb1, ns)
  * @returns {Promise<Object>} Raw Warframe world state data
  */
-export const fetchWarframeData = async () => {
+export const fetchWarframeData = async (platform = 'pc') => {
   try {
-    const response = await fetch(API_BASE_URL);
+    const response = await fetch(`https://api.tenno.tools/worldstate/${platform}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

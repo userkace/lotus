@@ -159,12 +159,13 @@ export default function App() {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchWarframeData();
+        const data = await fetchWarframeData('pc');
         setWarframeData(data);
         setLastUpdated(new Date());
       } catch (err) {
-        setError('Failed to fetch Warframe data. Please try again.');
-        console.error('API Error:', err);
+        console.error('Failed to fetch Warframe data:', err);
+        setError('Failed to fetch Warframe data. Please try again later.');
+        setWarframeData(null);
       } finally {
         setLoading(false);
       }
@@ -182,7 +183,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchWarframeData();
+      const data = await fetchWarframeData('pc');
       setWarframeData(data);
       setLastUpdated(new Date());
     } catch (err) {

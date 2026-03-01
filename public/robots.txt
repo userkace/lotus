@@ -1,0 +1,21 @@
+# Robots.txt for Lotus Warframe World State Tracker
+# https://lotus.kace.dev
+
+User-agent: *
+Allow: /
+
+# Allow search engines to crawl all important pages
+Allow: /src/
+Allow: /assets/
+
+# Disallow crawling of development files and APIs
+Disallow: /api/
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /dist/
+
+# Sitemap location
+Sitemap: https://lotus.kace.dev/sitemap.xml
+
+# Crawl delay (optional, be nice to servers)
+Crawl-delay: 1
