@@ -114,9 +114,10 @@ const extractLocationFromNode = (node) => {
  * @param {Object} props
  * @param {string} props.title
  * @param {any} [props.icon]
+ * @param {string} [props.className]
  */
-const SectionHeader = ({ title, icon: Icon }) => (
-  <h2 className="text-sm font-bold text-wf-primary uppercase tracking-widest mb-4 flex items-center">
+const SectionHeader = ({ title, icon: Icon, className = "" }) => (
+  <h2 className={`text-sm font-bold text-wf-primary uppercase tracking-widest flex items-center ${className}`}>
     <span className="w-2 h-2 bg-wf-primary mr-2"></span>
     {title}
   </h2>
@@ -153,6 +154,7 @@ export default function App() {
   const [voidStormFilter, setVoidStormFilter] = useState('all');
   const [expandedDaily, setExpandedDaily] = useState(false);
   const [expandedWeekly, setExpandedWeekly] = useState(false);
+  const [expandedEvents, setExpandedEvents] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -265,8 +267,82 @@ export default function App() {
         </div>
       </header>
 
+      {/* Events */}
+      <section>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <SectionHeader title="Events" />
+          <div className="flex gap-2">
+            {events.length > 3 && (
+              <button
+                onClick={() => setExpandedEvents(!expandedEvents)}
+                className={`flex items-center justify-center px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                  expandedEvents
+                    ? 'bg-wf-primary/90 text-black'
+                    : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
+                }`}
+              >
+                {expandedEvents ? 'Show Less' : `View All`}
+              </button>
+            )}
+          </div>
+        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i} className="p-3">
+                <div className="animate-pulse space-y-2">
+                  <div className="h-3 bg-wf-border rounded w-3/4"></div>
+                  <div className="h-2 bg-wf-border rounded w-1/2"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : events.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...events].reverse().slice(0, expandedEvents ? undefined : 3).map((event, i) => (
+              <Card key={event.id || i} className="p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">
+                      {event.text || 'Event'}
+                    </p>
+                    <p className="text-xs text-wf-text-muted mt-1">
+                      {event.eventEnd ? (
+                        <>
+                          Event • {formatTimeRemaining(event.eventEnd)}
+                        </>
+                      ) : (
+                        <>
+                          Posted: {formatTimeAgo(event.start)}
+                        </>
+                      )}
+                    </p>
+                    {event.link && (
+                      <a
+                        href={event.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-wf-primary hover:underline block mt-1 truncate"
+                      >
+                        {event.eventEnd ? 'Event Details →' : 'Read More →'}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-3">
+            <p className="text-wf-text-muted text-center">No active events</p>
+          </Card>
+        )}
+      </section>
+
       {/* World Cycles */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <section>
+        <SectionHeader title="World Cycles" className='mb-4' />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {loading ? (
           // Loading skeleton
           Array.from({ length: 3 }).map((_, i) => (
@@ -295,6 +371,7 @@ export default function App() {
             <p className="text-wf-text-muted text-center">No cycle data available</p>
           </Card>
         )}
+        </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -303,7 +380,7 @@ export default function App() {
 
           {/* Active Invasions */}
           <section>
-            <SectionHeader title="Active Invasions" />
+            <SectionHeader title="Active Invasions" className='mb-4' />
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -349,7 +426,7 @@ export default function App() {
 
           {/* Void Fissures */}
           <section>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <SectionHeader title="Void Fissures" />
               <div className="flex gap-2">
                 {getRelicTiers().map(tier => (
@@ -399,7 +476,7 @@ export default function App() {
 
           {/* Steel Path Fissures */}
           <section>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <SectionHeader title="Steel Path Fissures" />
               <div className="flex gap-2">
                 {getRelicTiers().map(tier => (
@@ -449,7 +526,7 @@ export default function App() {
 
           {/* Void Storms */}
           <section>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <SectionHeader title="Void Storms" />
               <div className="flex gap-2">
                 {['all', 'Lith', 'Meso', 'Neo', 'Axi', 'Grineer', 'Corpus'].map(filter => (
@@ -502,7 +579,7 @@ export default function App() {
         <aside className="lg:col-span-4 space-y-8">
           {/* Alerts */}
           <section>
-            <SectionHeader title="Alerts" />
+            <SectionHeader title="Alerts" className='mb-4' />
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
@@ -547,7 +624,7 @@ export default function App() {
 
           {/* Sortie */}
           <section>
-            <SectionHeader title="Sortie Analysis" />
+            <SectionHeader title="Sortie Analysis" className='mb-4' />
             {loading ? (
               <Card className="p-5">
                 <div className="animate-pulse space-y-4">
@@ -593,7 +670,7 @@ export default function App() {
 
           {/* Nightwave */}
           <section>
-            <SectionHeader title="Nightwave" />
+            <SectionHeader title="Nightwave" className='mb-4' />
             {loading ? (
               <Card className="p-5">
                 <div className="animate-pulse space-y-4">
@@ -693,7 +770,7 @@ export default function App() {
 
           {/* Faction Projects */}
           <section>
-            <SectionHeader title="Faction Projects" />
+            <SectionHeader title="Faction Projects" className='mb-4' />
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
@@ -768,65 +845,10 @@ export default function App() {
             )}
           </section>
 
-          {/* Events */}
-          <section>
-            <SectionHeader title="Events" />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-3/4"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : events.length > 0 ? (
-              <div className="space-y-3">
-                {[...events].reverse().slice(0, 3).map((event, i) => (
-                  <Card key={event.id || i} className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">
-                          {event.text || 'Event'}
-                        </p>
-                        <p className="text-xs text-wf-text-muted mt-1">
-                          {event.eventEnd ? (
-                            <>
-                              Event • {formatTimeRemaining(event.eventEnd)}
-                            </>
-                          ) : (
-                            <>
-                              Posted: {formatTimeAgo(event.start)}
-                            </>
-                          )}
-                        </p>
-                        {event.link && (
-                          <a
-                            href={event.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-wf-primary hover:underline block mt-1 truncate"
-                          >
-                            {event.eventEnd ? 'Event Details →' : 'Read More →'}
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No active events</p>
-              </Card>
-            )}
-          </section>
-
+          
           {/* Daily Deals */}
           <section>
-            <SectionHeader title="Daily Deals" />
+            <SectionHeader title="Daily Deals" className='mb-4' />
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
@@ -875,7 +897,7 @@ export default function App() {
 
           {/* Baro Ki'Teer */}
           <section>
-            <SectionHeader title="Void Trader" />
+            <SectionHeader title="Void Trader" className='mb-4' />
             {loading ? (
               <Card className="p-5">
                 <div className="animate-pulse space-y-4">
@@ -930,7 +952,7 @@ export default function App() {
 
           {/* Arbitrations */}
           <section>
-            <SectionHeader title="Arbitrations" />
+            <SectionHeader title="Arbitrations" className='mb-4' />
             {loading ? (
               <Card className="p-5">
                 <div className="animate-pulse space-y-4">
@@ -983,7 +1005,7 @@ export default function App() {
 
           {/* Acolytes */}
           <section>
-            <SectionHeader title="Acolytes" />
+            <SectionHeader title="Acolytes" className='mb-4' />
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
@@ -1031,7 +1053,7 @@ export default function App() {
 
       {/* Bounties - Full Width Section */}
       <section className="mt-8">
-        <SectionHeader title="Bounties" />
+        <SectionHeader title="Bounties" className='mb-4' />
         {loading ? (
           <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (
