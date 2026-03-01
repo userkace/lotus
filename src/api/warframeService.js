@@ -644,7 +644,7 @@ export const processArchonHunt = (worldState) => {
       id: String(index + 1).padStart(2, '0'),
       type: mission.type || 'Unknown Mission',
       node: mission.node || 'Unknown Location',
-      modifier: `${mission.type || 'Unknown'} - ${archonHunt.faction || 'Unknown'}`,
+      modifier: `${archonHunt.faction || 'Unknown'}`,
       location: mission.node || 'Unknown Location'
     }))
   };

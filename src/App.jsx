@@ -801,6 +801,9 @@ export default function App() {
                           <p className="text-xs text-wf-text-muted italic">
                             {sortieMode === 'sortie' ? m.modifier : m.modifier}
                           </p>
+                          <p className="text-xs text-wf-text-muted">
+                            {sortieMode === 'sortie' ? m.location : m.node}
+                          </p>
                         </div>
                         <div className="text-right ml-3">
                           <span className="text-xs text-wf-text-muted font-mono">{m.id}</span>
