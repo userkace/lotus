@@ -288,11 +288,12 @@ export default function App() {
         </div>
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 2 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="p-3">
                 <div className="animate-pulse space-y-2">
-                  <div className="h-3 bg-wf-border rounded w-3/4"></div>
-                  <div className="h-2 bg-wf-border rounded w-1/2"></div>
+                  <div className="h-4 bg-wf-border rounded w-3/4"></div>
+                  <div className="h-3 bg-wf-border rounded w-1/2"></div>
+                  <div className="h-3 bg-wf-border rounded w-2/3"></div>
                 </div>
               </Card>
             ))}
