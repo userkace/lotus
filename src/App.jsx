@@ -15,6 +15,7 @@ import {
   Sword,
   AlertTriangle,
   ChevronRight,
+  ChevronDown,
   Info,
   RefreshCw,
   AlertCircle
@@ -155,6 +156,19 @@ export default function App() {
   const [expandedDaily, setExpandedDaily] = useState(false);
   const [expandedWeekly, setExpandedWeekly] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState(false);
+  const [platform, setPlatform] = useState('pc');
+  const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
+
+  const platforms = [
+    { value: 'pc', label: 'PC' },
+    { value: 'ps4', label: 'PlayStation' },
+    { value: 'xb1', label: 'Xbox' },
+    { value: 'ns', label: 'Nintendo Switch' }
+  ];
+
+  const getPlatformLabel = (value) => {
+    return platforms.find(p => p.value === value)?.label || 'PC';
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -166,7 +180,7 @@ export default function App() {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchWarframeData('pc');
+        const data = await fetchWarframeData(platform);
         setWarframeData(data);
         setLastUpdated(new Date());
       } catch (err) {
@@ -184,13 +198,13 @@ export default function App() {
     const interval = setInterval(fetchData, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [platform]);
 
   const handleRefresh = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchWarframeData('pc');
+      const data = await fetchWarframeData(platform);
       setWarframeData(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -247,22 +261,52 @@ export default function App() {
           <p className="text-wf-text-muted text-sm mt-1 uppercase tracking-widest">Origin System Real-time Feed</p>
         </div>
         <div className="mt-4 md:mt-0 flex items-center gap-4">
+          <div>
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2 text-wf-primary hover:text-wf-text transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 cursor-pointer text-wf-primary hover:text-wf-text transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="text-sm">Refresh</span>
           </button>
-          <div className="text-right">
-            <span className="text-xs text-wf-text-muted uppercase tracking-tighter">Platform:</span>
-            <span className="text-sm font-semibold ml-1">PC / Windows</span>
             {lastUpdated && (
               <div className="text-xs text-wf-text-muted mt-1">
                 Last: {lastUpdated.toLocaleTimeString()}
               </div>
             )}
+          </div>
+          <div className="flex flex-col">
+            <div className="relative">
+              <button
+                onClick={() => setPlatformDropdownOpen(!platformDropdownOpen)}
+                className="bg-wf-surface border border-wf-border text-sm font-semibold px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-wf-primary/50 focus:border-wf-primary cursor-pointer hover:border-wf-primary/50 transition-all duration-200 min-w-[180px] flex items-center justify-between"
+              >
+                <span>{getPlatformLabel(platform)}</span>
+                <ChevronDown className={`w-4 h-4 text-wf-primary transition-transform duration-200 ${platformDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {platformDropdownOpen && (
+                <div className="absolute top-full mt-2 left-0 right-0 bg-wf-surface border border-wf-border rounded-lg shadow-lg z-50 overflow-hidden">
+                  {platforms.map((p) => (
+                    <button
+                      key={p.value}
+                      onClick={() => {
+                        setPlatform(p.value);
+                        setPlatformDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 cursor-pointer text-sm font-semibold transition-colors duration-150 ${
+                        p.value === platform
+                          ? 'bg-wf-primary text-black'
+                          : 'text-wf-primary hover:bg-wf-border'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -275,7 +319,7 @@ export default function App() {
             {events.length > 3 && (
               <button
                 onClick={() => setExpandedEvents(!expandedEvents)}
-                className={`flex items-center justify-center px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                className={`flex items-center justify-center px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
                   expandedEvents
                     ? 'bg-wf-primary/90 text-black'
                     : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
@@ -434,7 +478,7 @@ export default function App() {
                   <button
                     key={tier}
                     onClick={() => setFissureFilter(tier)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${fissureFilter === tier
+                    className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${fissureFilter === tier
                         ? 'bg-wf-primary text-black'
                         : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
                       }`}
@@ -484,7 +528,7 @@ export default function App() {
                   <button
                     key={tier}
                     onClick={() => setSteelPathFilter(tier)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${steelPathFilter === tier
+                    className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${steelPathFilter === tier
                         ? 'bg-wf-primary text-black'
                         : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
                       }`}
@@ -534,7 +578,7 @@ export default function App() {
                   <button
                     key={filter}
                     onClick={() => setVoidStormFilter(filter)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${voidStormFilter === filter
+                    className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${voidStormFilter === filter
                         ? 'bg-wf-primary text-black'
                         : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
                       }`}
@@ -713,7 +757,7 @@ export default function App() {
                         {nightwave.challenges.filter(c => c.type === 'daily').length > 1 && (
                           <button
                             onClick={() => setExpandedDaily(!expandedDaily)}
-                            className={`flex items-center justify-center px-3 py-1 text-xs font-semibold rounded transition-colors mt-2 ${
+                            className={`flex items-center justify-center px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors mt-2 ${
                               expandedDaily
                                 ? 'bg-wf-primary/90 text-black'
                                 : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
@@ -744,7 +788,7 @@ export default function App() {
                         {nightwave.challenges.filter(c => c.type === 'weekly').length > 1 && (
                           <button
                             onClick={() => setExpandedWeekly(!expandedWeekly)}
-                            className={`flex items-center justify-center px-3 py-1 text-xs font-semibold rounded transition-colors mt-2 ${
+                            className={`flex items-center justify-center px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors mt-2 ${
                               expandedWeekly
                                 ? 'bg-wf-primary/90 text-black'
                                 : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
