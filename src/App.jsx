@@ -160,7 +160,7 @@ export default function App() {
   const [expandedWeekly, setExpandedWeekly] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState(false);
   const [expandedFlashSales, setExpandedFlashSales] = useState(false);
-  const [selectedSection, setSelectedSection] = useState('all'); // 'all', 'fissures', 'steelPath', 'voidStorms'
+  const [selectedSection, setSelectedSection] = useState('fissures'); // 'all', 'fissures', 'steelPath', 'voidStorms' NOTE: 'all' is no longer mapped to a button but can be used.
   const [sortieMode, setSortieMode] = useState('sortie'); // 'sortie' or 'archonHunt'
   const [platform, setPlatform] = useState('pc');
   const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
@@ -497,16 +497,7 @@ export default function App() {
           {/* Section Selector */}
           <section className="mt-8">
             <div className="flex justify-center gap-2 mb-4">
-              <button
-                onClick={() => setSelectedSection('all')}
-                className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
-                  selectedSection === 'all'
-                    ? 'bg-wf-primary text-black'
-                    : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                }`}
-              >
-                All Sections
-              </button>
+
               <button
                 onClick={() => setSelectedSection('fissures')}
                 className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
