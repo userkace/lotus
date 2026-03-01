@@ -151,6 +151,8 @@ export default function App() {
   const [fissureFilter, setFissureFilter] = useState('all');
   const [steelPathFilter, setSteelPathFilter] = useState('all');
   const [voidStormFilter, setVoidStormFilter] = useState('all');
+  const [expandedDaily, setExpandedDaily] = useState(false);
+  const [expandedWeekly, setExpandedWeekly] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -624,12 +626,24 @@ export default function App() {
                     <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Daily Acts</p>
                     {nightwave.challenges.filter(c => c.type === 'daily').length > 0 ? (
                       <div className="space-y-3 mt-3">
-                        {nightwave.challenges.filter(c => c.type === 'daily').map((c, i) => (
+                        {nightwave.challenges.filter(c => c.type === 'daily').slice(0, expandedDaily ? undefined : 1).map((c, i) => (
                           <div key={i} className="border-l-2 border-wf-primary pl-3">
                             <p className="text-sm font-semibold">{c.name}</p>
                             <p className="text-xs text-wf-text-muted">{c.description}</p>
                           </div>
                         ))}
+                        {nightwave.challenges.filter(c => c.type === 'daily').length > 1 && (
+                          <button
+                            onClick={() => setExpandedDaily(!expandedDaily)}
+                            className={`flex items-center justify-center px-3 py-1 text-xs font-semibold rounded transition-colors mt-2 ${
+                              expandedDaily
+                                ? 'bg-wf-primary/90 text-black'
+                                : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
+                            }`}
+                          >
+                            {expandedDaily ? 'View Less' : `View More • ${nightwave.challenges.filter(c => c.type === 'daily').length - 1}`}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-3">
@@ -643,12 +657,24 @@ export default function App() {
                     <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Weekly Acts</p>
                     {nightwave.challenges.filter(c => c.type === 'weekly').length > 0 ? (
                       <div className="space-y-3 mt-3">
-                        {nightwave.challenges.filter(c => c.type === 'weekly').map((c, i) => (
+                        {nightwave.challenges.filter(c => c.type === 'weekly').slice(0, expandedWeekly ? undefined : 1).map((c, i) => (
                           <div key={i} className="border-l-2 border-wf-border opacity-50 pl-3">
                             <p className="text-sm font-semibold">{c.name}</p>
                             <p className="text-xs text-wf-text-muted">{c.description}</p>
                           </div>
                         ))}
+                        {nightwave.challenges.filter(c => c.type === 'weekly').length > 1 && (
+                          <button
+                            onClick={() => setExpandedWeekly(!expandedWeekly)}
+                            className={`flex items-center justify-center px-3 py-1 text-xs font-semibold rounded transition-colors mt-2 ${
+                              expandedWeekly
+                                ? 'bg-wf-primary/90 text-black'
+                                : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
+                            }`}
+                          >
+                            {expandedWeekly ? 'View Less' : `View More • ${nightwave.challenges.filter(c => c.type === 'weekly').length - 1}`}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-3">
