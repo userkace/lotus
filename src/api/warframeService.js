@@ -13,11 +13,11 @@ const API_BASE_URL = 'https://api.tenno.tools/worldstate/pc';
 export const fetchWarframeData = async (platform = 'pc') => {
   try {
     const response = await fetch(`https://api.tenno.tools/worldstate/${platform}`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -33,12 +33,12 @@ export const fetchWarframeData = async (platform = 'pc') => {
  */
 const parseTimestamp = (timestamp) => {
   if (!timestamp) return new Date();
-  
+
   // Handle both number and string formats
   const timestampNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
-  
+
   if (isNaN(timestampNum)) return new Date();
-  
+
   // Unix timestamps are in seconds, JavaScript Date expects milliseconds
   return new Date(timestampNum * 1000);
 };
@@ -51,16 +51,16 @@ const parseTimestamp = (timestamp) => {
  */
 export const formatTimeFromBase = (timestamp, baseTime) => {
   if (!timestamp || !baseTime) return '0s';
-  
+
   const diff = timestamp - baseTime;
-  
+
   if (diff <= 0) return '0s';
-  
+
   const days = Math.floor(diff / 86400);
   const hours = Math.floor((diff % 86400) / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
   const seconds = diff % 60;
-  
+
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   if (minutes > 0) return `${minutes}m ${seconds}s`;
@@ -74,22 +74,47 @@ export const formatTimeFromBase = (timestamp, baseTime) => {
  */
 export const formatTimeRemaining = (expiry) => {
   if (!expiry) return 'Unknown';
-  
+
   const now = new Date();
   const expiryTime = parseTimestamp(expiry);
   const diff = expiryTime - now;
-  
+
   if (diff <= 0) return 'Expired';
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
+
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   if (minutes > 0) return `${minutes}m ${seconds}s`;
   return `${seconds}s`;
+};
+
+/**
+ * Formats time ago from timestamp to human readable format
+ * @param {number|string} timestamp - Past timestamp (Unix timestamp)
+ * @returns {string} Formatted time ago
+ */
+export const formatTimeAgo = (timestamp) => {
+  if (!timestamp) return 'Unknown';
+
+  const now = new Date();
+  const pastTime = parseTimestamp(timestamp);
+  const diff = now - pastTime;
+
+  if (diff <= 0) return 'Just now';
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return `${seconds}s ago`;
 };
 
 /**
@@ -99,7 +124,7 @@ export const formatTimeRemaining = (expiry) => {
  */
 const extractPlanetFromPath = (nodePath) => {
   if (!nodePath) return 'Unknown';
-  
+
   const planetMap = {
     'Earth': 'Earth',
     'Venus': 'Venus',
@@ -122,11 +147,11 @@ const extractPlanetFromPath = (nodePath) => {
     'KuvaLich': 'Kuva Fortress',
     'Tau': 'Duviri'
   };
-  
+
   // Extract planet from path like "/Lotus/Levels/Earth/Everest.level"
   const pathParts = nodePath.split('/');
   const planetPart = pathParts.find(part => planetMap[part]);
-  
+
   return planetMap[planetPart] || pathParts[3] || 'Unknown';
 };
 
@@ -137,7 +162,7 @@ const extractPlanetFromPath = (nodePath) => {
  */
 const extractMissionType = (levelPath) => {
   if (!levelPath) return 'Unknown';
-  
+
   const missionTypes = {
     'Exterminate': 'Exterminate',
     'Survival': 'Survival',
@@ -158,11 +183,11 @@ const extractMissionType = (levelPath) => {
     'Sanctuary': 'Sanctuary',
     'Arena': 'Conclave'
   };
-  
+
   for (const [key, value] of Object.entries(missionTypes)) {
     if (levelPath.includes(key)) return value;
   }
-  
+
   return 'Unknown';
 };
 
@@ -175,25 +200,25 @@ export const processCycles = (worldState) => {
   if (!worldState || !worldState.daynight || !worldState.daynight.data) {
     return [];
   }
-  
+
   const cycles = [];
   const now = new Date();
-  
+
   worldState.daynight.data.forEach(cycle => {
     // Calculate cycle position based on the cycle start time and length
     const cycleStart = parseTimestamp(cycle.start);
     const cycleLengthSeconds = cycle.length;
     const cycleLength = cycleLengthSeconds * 1000; // Convert to milliseconds
-    
+
     // Calculate how much time has passed since cycle started
     const elapsed = now.getTime() - cycleStart.getTime();
     const cycleProgress = (elapsed % cycleLength) / cycleLength;
-    
+
     // Determine if it's day or night (dayStart and dayEnd are in seconds within the cycle)
     const dayStartSeconds = cycle.dayStart;
     const dayEndSeconds = cycle.dayEnd;
     const isDay = cycleProgress >= (dayStartSeconds / cycleLengthSeconds) && cycleProgress <= (dayEndSeconds / cycleLengthSeconds);
-    
+
     // Calculate time until next state change
     let timeUntilChange;
     if (isDay) {
@@ -204,7 +229,7 @@ export const processCycles = (worldState) => {
         timeUntilChange = (dayStartSeconds * 1000) - (elapsed % cycleLength);
       }
     }
-    
+
     // Format location name
     const locationNames = {
       'cetus': 'Cetus (Earth)',
@@ -213,7 +238,7 @@ export const processCycles = (worldState) => {
       'vallis': 'Orb Vallis (Venus)',
       'cambion': 'Cambion Drift (Deimos)'
     };
-    
+
     const stateNames = {
       'cetus': isDay ? 'Day' : 'Night',
       'fortuna': isDay ? 'Warm' : 'Cold',
@@ -221,14 +246,14 @@ export const processCycles = (worldState) => {
       'vallis': isDay ? 'Warm' : 'Cold',
       'cambion': isDay ? 'Vome' : 'Wisp'
     };
-    
+
     cycles.push({
       location: locationNames[cycle.id] || `${cycle.id}`,
       state: stateNames[cycle.id] || (isDay ? 'Day' : 'Night'),
       timeLeft: formatTimeRemaining(Math.floor((now.getTime() + timeUntilChange) / 1000))
     });
   });
-  
+
   return cycles;
 };
 
@@ -241,16 +266,16 @@ export const processSortie = (worldState) => {
   if (!worldState || !worldState.sorties || !worldState.sorties.data || worldState.sorties.data.length === 0) {
     return null;
   }
-  
+
   const sortie = worldState.sorties.data[0];
-  
+
   const missions = sortie.missions.map((mission, index) => ({
     id: String(index + 1).padStart(2, '0'),
     type: getMissionTypeName(mission.missionType),
     modifier: formatModifierName(mission.modifier),
     location: extractLocationFromNode(mission.location)
   }));
-  
+
   return {
     boss: formatBossName(sortie.bossName),
     missionType: 'Sortie',
@@ -318,20 +343,20 @@ const formatModifierName = (modifier) => {
  */
 const extractLocationFromNode = (node) => {
   if (!node) return 'Unknown';
-  
+
   // Extract planet and location from node names like "SolNode15" or "SettlementNode11"
   const nodeMap = {
     'SolNode': 'Star Chart',
     'SettlementNode': 'Zariman',
     'CrewBattleNode': 'Railjack'
   };
-  
+
   for (const [prefix, location] of Object.entries(nodeMap)) {
     if (node.startsWith(prefix)) {
       return location;
     }
   }
-  
+
   return node;
 };
 
@@ -342,7 +367,7 @@ const extractLocationFromNode = (node) => {
  */
 const formatBossName = (bossName) => {
   if (!bossName) return 'Unknown Boss';
-  
+
   const bossNames = {
     'SORTIE_BOSS_ALAD': 'Alad V',
     'SORTIE_BOSS_KRIL': 'Captain Vor & Kril',
@@ -353,7 +378,7 @@ const formatBossName = (bossName) => {
     'SORTIE_BOSS_INFALAD': 'Alad V',
     'SORTIE_BOSS_BOREAL': 'Boreal'
   };
-  
+
   return bossNames[bossName] || bossName.replace(/SORTIE_BOSS_/, '').replace(/_/g, ' ') || 'Unknown Boss';
 };
 
@@ -366,7 +391,7 @@ const getModifierFromVariables = (variables) => {
   if (!Array.isArray(variables) || variables.length === 0) {
     return 'No Modifiers';
   }
-  
+
   const variableNames = variables.join(', ');
   return variableNames || 'Special Conditions';
 };
@@ -379,7 +404,7 @@ const getModifierFromVariables = (variables) => {
 const getLocationFromMission = (mission) => {
   const faction = mission.faction;
   const missionType = mission.missionType;
-  
+
   // Create location based on faction and mission type
   const locations = {
     'FC_MITW': 'Mitwer',
@@ -387,7 +412,7 @@ const getLocationFromMission = (mission) => {
     'FC_CORPUS': 'Corpus Ship',
     'FC_INFESTED': 'Infested Ship'
   };
-  
+
   return locations[faction] || 'Unknown Location';
 };
 
@@ -428,7 +453,7 @@ export const processDailyDeals = (worldState) => {
   if (!worldState || !worldState.dailydeals || !worldState.dailydeals.data) {
     return [];
   }
-  
+
   return worldState.dailydeals.data.map(deal => ({
     item: deal.item?.name || 'Unknown Item',
     originalPrice: deal.originalPrice || 0,
@@ -449,10 +474,10 @@ export const processInvasions = (worldState) => {
   if (!worldState || !worldState.invasions || !worldState.invasions.data) {
     return [];
   }
-  
+
   return worldState.invasions.data.map(invasion => {
     const progressPercent = Math.abs(Math.round((invasion.score / invasion.endScore) * 100));
-    
+
     return {
       node: extractLocationFromNode(invasion.location),
       planet: extractPlanetFromNode(invasion.location),
@@ -472,7 +497,7 @@ export const processInvasions = (worldState) => {
  */
 const formatRewards = (rewards) => {
   if (!rewards) return 'No Rewards';
-  
+
   const items = [];
   if (rewards.credits) {
     items.push(`${rewards.credits} credits`);
@@ -480,7 +505,7 @@ const formatRewards = (rewards) => {
   if (rewards.items && rewards.items.length > 0) {
     items.push(rewards.items.map(item => item.name).join(', '));
   }
-  
+
   return items.length > 0 ? items.join(' + ') : 'No Rewards';
 };
 
@@ -495,7 +520,7 @@ const getRewardForFaction = (faction, progress) => {
     'Grineer': ['2x Rifle Ammo Mutation', '3x Hell\'s Decree', '1x Vulkar'],
     'Corpus': ['2x Pistol Ammo Mutation', '3x Cryotic Rounds', '1x Dera']
   };
-  
+
   const factionRewards = rewards[faction] || rewards['Grineer'];
   return factionRewards[Math.floor(Math.random() * factionRewards.length)];
 };
@@ -513,9 +538,9 @@ export const processNightwave = (worldState) => {
       challenges: []
     };
   }
-  
+
   const season = worldState.challenges.data[0];
-  
+
   // Extract challenges and sort by daily/weekly
   const challenges = (season.challenges || []);
   const dailyChallenges = challenges
@@ -526,7 +551,7 @@ export const processNightwave = (worldState) => {
       isElite: false,
       type: 'daily'
     }));
-    
+
   const weeklyChallenges = challenges
     .filter(challenge => !challenge.daily)
     .map(challenge => ({
@@ -535,15 +560,15 @@ export const processNightwave = (worldState) => {
       isElite: true,
       type: 'weekly'
     }));
-  
+
   // Combine daily and weekly challenges, with daily first
   const sortedChallenges = [...dailyChallenges, ...weeklyChallenges];
-  
+
   // Calculate progress based on season and phase
   const seasonNumber = season.season || 0;
   const phase = season.phase || 0;
   const progressPercent = Math.min(100, Math.round((phase + 1) * 20)); // Approximate progress
-  
+
   return {
     progress: `Season ${seasonNumber} - Phase ${phase + 1}`,
     progressPercent,
@@ -558,11 +583,11 @@ export const processNightwave = (worldState) => {
  */
 const extractChallengeName = (challengePath) => {
   if (!challengePath) return 'Unknown Challenge';
-  
+
   // Extract the last part of the path and convert to readable name
   const pathParts = challengePath.split('/');
   const challengeName = pathParts[pathParts.length - 1];
-  
+
   // Map known challenge paths to readable names
   const challengeNames = {
     'SeasonDailyDonateLeverian': 'Donate Leverian',
@@ -572,7 +597,7 @@ const extractChallengeName = (challengePath) => {
     'SeasonWeeklySanctuary': 'Sanctuary Target',
     'SeasonWeeklyElite': 'Elite Weekly Challenge'
   };
-  
+
   return challengeNames[challengeName] || formatChallengeName(challengeName);
 };
 
@@ -583,7 +608,7 @@ const extractChallengeName = (challengePath) => {
  */
 const formatChallengeName = (name) => {
   if (!name) return 'Unknown Challenge';
-  
+
   // Convert camelCase to readable format
   return name
     .replace(/([A-Z])/g, ' $1')
@@ -599,7 +624,7 @@ const formatChallengeName = (name) => {
  */
 const getChallengeDescription = (challengePath) => {
   if (!challengePath) return 'No description available';
-  
+
   // Provide descriptions for known challenges
   const descriptions = {
     'SeasonDailyDonateLeverian': 'Donate items to the Leverian',
@@ -609,7 +634,7 @@ const getChallengeDescription = (challengePath) => {
     'SeasonWeeklySanctuary': 'Complete Sanctuary Onslaught missions',
     'SeasonWeeklyElite': 'Complete elite weekly challenges'
   };
-  
+
   return descriptions[challengePath] || 'Complete this challenge to earn rewards';
 };
 
@@ -622,13 +647,13 @@ export const processVoidTrader = (worldState) => {
   if (!worldState || !worldState.voidtraders || !worldState.voidtraders.data || worldState.voidtraders.data.length === 0) {
     return null;
   }
-  
+
   const trader = worldState.voidtraders.data[0];
   const now = new Date();
   const activation = parseTimestamp(trader.start);
   const expiry = parseTimestamp(trader.end);
   const isActive = now >= activation && now <= expiry;
-  
+
   return {
     character: trader.name || 'Baro\'Ki Teel',
     location: extractLocationFromNode(trader.location),
@@ -655,7 +680,7 @@ export const processFissures = (worldState, tierFilter = 'all', steelPath = fals
   if (!worldState || !worldState.fissures || !worldState.fissures.data) {
     return [];
   }
-  
+
   const fissures = worldState.fissures.data
     .filter(fissure => steelPath ? fissure.hard : !fissure.hard)
     .map(fissure => ({
@@ -666,14 +691,14 @@ export const processFissures = (worldState, tierFilter = 'all', steelPath = fals
       faction: fissure.faction || 'Unknown',
       timeLeft: formatTimeRemaining(fissure.end)
     }));
-  
+
   // Filter by tier if specified
   if (tierFilter !== 'all') {
-    return fissures.filter(fissure => 
+    return fissures.filter(fissure =>
       fissure.tier.toLowerCase() === tierFilter.toLowerCase()
     );
   }
-  
+
   return fissures;
 };
 
@@ -691,7 +716,7 @@ const formatTierName = (tier) => {
     'VoidT5': 'Requiem',
     'VoidT6': 'Omnia'
   };
-  
+
   return tierNames[tier] || tier || 'Unknown';
 };
 
@@ -702,11 +727,11 @@ const formatTierName = (tier) => {
  */
 const extractPlanetFromNode = (node) => {
   if (!node) return 'Unknown';
-  
+
   // Map known SolNodes to planets
   const nodeToPlanet = {
     'SolNode1': 'Mercury',
-    'SolNode2': 'Venus', 
+    'SolNode2': 'Venus',
     'SolNode3': 'Earth',
     'SolNode4': 'Mars',
     'SolNode5': 'Jupiter',
@@ -722,7 +747,7 @@ const extractPlanetFromNode = (node) => {
     'SolNode15': 'Europa',
     'SolNode16': 'Lua'
   };
-  
+
   return nodeToPlanet[node] || 'Unknown';
 };
 
@@ -735,9 +760,9 @@ export const processArbitrations = (worldState) => {
   if (!worldState || !worldState.arbitrations || !worldState.arbitrations.data || worldState.arbitrations.data.length === 0) {
     return null;
   }
-  
+
   const arbitration = worldState.arbitrations.data[0];
-  
+
   return {
     type: getMissionTypeName(arbitration.missionType),
     location: extractLocationFromNode(arbitration.location),
@@ -761,7 +786,7 @@ export const processVoidStorms = (worldState, filter = 'all') => {
   if (!worldState || !worldState.voidstorms || !worldState.voidstorms.data) {
     return [];
   }
-  
+
   const storms = worldState.voidstorms.data.map(storm => ({
     location: extractLocationFromNode(storm.location),
     faction: storm.faction,
@@ -769,15 +794,15 @@ export const processVoidStorms = (worldState, filter = 'all') => {
     tier: formatTierName(storm.tier),
     timeLeft: formatTimeRemaining(storm.end)
   }));
-  
+
   // Filter by tier or faction if specified
   if (filter !== 'all') {
-    return storms.filter(storm => 
+    return storms.filter(storm =>
       storm.tier.toLowerCase() === filter.toLowerCase() ||
       storm.faction.toLowerCase() === filter.toLowerCase()
     );
   }
-  
+
   return storms;
 };
 
@@ -790,7 +815,7 @@ export const processAcolytes = (worldState) => {
   if (!worldState || !worldState.acolytes || !worldState.acolytes.data) {
     return [];
   }
-  
+
   return worldState.acolytes.data.map(acolyte => ({
     name: acolyte.name,
     health: Math.round(acolyte.health * 100),
@@ -813,11 +838,11 @@ export const processFactionProjects = (worldState) => {
   if (!worldState || !worldState.factionprojects || !worldState.factionprojects.data) {
     return [];
   }
-  
+
   return worldState.factionprojects.data.map(project => {
     // Progress is already a percentage (0-100), so keep two decimal places
     const progressPercent = Math.round(project.progress * 100) / 100;
-    
+
     // Calculate accumulated time from first data point
     let accumulatedTime = 'Unknown';
     if (project.progressHistory && project.progressHistory.length > 0) {
@@ -826,7 +851,7 @@ export const processFactionProjects = (worldState) => {
       const now = Math.floor(Date.now() / 1000);
       accumulatedTime = formatTimeFromBase(now, baseTime);
     }
-    
+
     // Hardcoded faction mapping for faction projects
     const factionMapping = {
       'Balor Fomorian': 'Grineer',
@@ -835,9 +860,9 @@ export const processFactionProjects = (worldState) => {
       'Infested Outbreak': 'Infested',
       'Arbitration': 'None'
     };
-    
+
     const faction = factionMapping[project.type] || 'Unknown';
-    
+
     return {
       type: project.type,
       faction: faction,
@@ -863,7 +888,7 @@ export const processKuvaSiphons = (worldState) => {
   if (!worldState || !worldState.kuvasiphons || !worldState.kuvasiphons.data) {
     return [];
   }
-  
+
   return worldState.kuvasiphons.data.map(siphon => ({
     location: extractLocationFromNode(siphon.location),
     faction: siphon.faction,
@@ -888,16 +913,16 @@ export const processBounties = (worldState) => {
   if (!worldState || !worldState.bounties || !worldState.bounties.data) {
     return [];
   }
-  
+
   const sortOrder = [
     'Ostron',
-    'Solaris United', 
+    'Solaris United',
     'Vox Solaris',
     'Entrati',
     'Cavia',
     'The Holdfasts'
   ];
-  
+
   // Bounty location mapping
   const bountyLocations = {
     'Ostron': 'Cetus, Earth',
@@ -907,7 +932,7 @@ export const processBounties = (worldState) => {
     'Cavia': 'Sanctum Anatomica',
     'The Holdfasts': 'Duviri'
   };
-  
+
   const processedBounties = worldState.bounties.data.map(bounty => ({
     syndicate: bounty.syndicate,
     location: bountyLocations[bounty.syndicate] || extractLocationFromNode(bounty.id),
@@ -926,21 +951,21 @@ export const processBounties = (worldState) => {
       maxLevel: job.maxLevel || 0
     })) || []
   }));
-  
+
   // Sort bounties according to the specified order
   return processedBounties.sort((a, b) => {
     const aIndex = sortOrder.indexOf(a.syndicate);
     const bIndex = sortOrder.indexOf(b.syndicate);
-    
+
     // If both are in the sort order, sort by their positions
     if (aIndex !== -1 && bIndex !== -1) {
       return aIndex - bIndex;
     }
-    
+
     // If only one is in the sort order, put the one in order first
     if (aIndex !== -1) return -1;
     if (bIndex !== -1) return 1;
-    
+
     // If neither is in the sort order, sort alphabetically
     return a.syndicate.localeCompare(b.syndicate);
   });

@@ -5,26 +5,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Activity, 
-  Clock, 
-  Shield, 
-  Zap, 
-  Target, 
-  Box, 
-  Sword, 
+import {
+  Activity,
+  Clock,
+  Shield,
+  Zap,
+  Target,
+  Box,
+  Sword,
   AlertTriangle,
   ChevronRight,
   Info,
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { 
-  fetchWarframeData, 
+import {
+  fetchWarframeData,
   processCycles,
-  processFissures, 
-  processSortie, 
-  processInvasions, 
+  processFissures,
+  processSortie,
+  processInvasions,
   processNightwave,
   processVoidTrader,
   processDailyDeals,
@@ -35,25 +35,26 @@ import {
   processFactionProjects,
   getRelicTiers,
   formatTimeRemaining,
-  formatTimeFromBase 
+  formatTimeAgo,
+  formatTimeFromBase
 } from './api/warframeService.js';
 
 // Helper function for extracting location from node
 const extractLocationFromNode = (node) => {
   if (!node) return 'Unknown';
-  
+
   const nodeMap = {
     'SolNode': 'Star Chart',
     'SettlementNode': 'Zariman',
     'CrewBattleNode': 'Railjack'
   };
-  
+
   for (const [prefix, location] of Object.entries(nodeMap)) {
     if (node.startsWith(prefix)) {
       return location;
     }
   }
-  
+
   return node;
 };
 
@@ -132,7 +133,7 @@ const SectionHeader = ({ title, icon: Icon }) => (
  * @param {CardProps} props
  */
 const Card = ({ children, className = "" }) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     className={`bg-wf-surface border border-wf-border p-4 rounded-sm ${className}`}
@@ -174,10 +175,10 @@ export default function App() {
     };
 
     fetchData();
-    
+
     // Refresh data every 5 minutes
     const interval = setInterval(fetchData, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -353,11 +354,10 @@ export default function App() {
                   <button
                     key={tier}
                     onClick={() => setFissureFilter(tier)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
-                      fissureFilter === tier
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${fissureFilter === tier
                         ? 'bg-wf-primary text-black'
                         : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                    }`}
+                      }`}
                   >
                     {tier === 'all' ? 'All' : tier}
                   </button>
@@ -404,11 +404,10 @@ export default function App() {
                   <button
                     key={tier}
                     onClick={() => setSteelPathFilter(tier)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
-                      steelPathFilter === tier
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${steelPathFilter === tier
                         ? 'bg-wf-primary text-black'
                         : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                    }`}
+                      }`}
                   >
                     {tier === 'all' ? 'All' : tier}
                   </button>
@@ -455,11 +454,10 @@ export default function App() {
                   <button
                     key={filter}
                     onClick={() => setVoidStormFilter(filter)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
-                      voidStormFilter === filter
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${voidStormFilter === filter
                         ? 'bg-wf-primary text-black'
                         : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                    }`}
+                      }`}
                   >
                     {filter === 'all' ? 'All' : filter}
                   </button>
@@ -613,11 +611,11 @@ export default function App() {
                   <span className="text-sm font-bold">{nightwave.progress}</span>
                 </div>
                 <div className="w-full bg-wf-bg h-1.5 rounded-full mb-6 overflow-hidden">
-                  <motion.div 
+                  <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${nightwave.progressPercent}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="bg-wf-primary h-full" 
+                    className="bg-wf-primary h-full"
                   />
                 </div>
                 <div className="space-y-6">
@@ -639,7 +637,7 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Weekly Challenges */}
                   <div>
                     <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Weekly Acts</p>
@@ -760,28 +758,32 @@ export default function App() {
               </div>
             ) : events.length > 0 ? (
               <div className="space-y-3">
-                {events.slice(0, 3).map((event, i) => (
-                  <Card key={i} className="p-3">
+                {[...events].reverse().slice(0, 3).map((event, i) => (
+                  <Card key={event.id || i} className="p-3">
                     <div className="flex items-start gap-3">
-                      {event.imageUrl && (
-                        <img 
-                          src={event.imageUrl} 
-                          alt="" 
-                          className="w-12 h-12 rounded object-cover shrink-0"
-                        />
-                      )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">
                           {event.text || 'Event'}
                         </p>
+                        <p className="text-xs text-wf-text-muted mt-1">
+                          {event.eventEnd ? (
+                            <>
+                              Event • {formatTimeRemaining(event.eventEnd)}
+                            </>
+                          ) : (
+                            <>
+                              Posted: {formatTimeAgo(event.start)}
+                            </>
+                          )}
+                        </p>
                         {event.link && (
-                          <a 
+                          <a
                             href={event.link}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-wf-primary hover:underline block mt-1 truncate"
                           >
-                            View Details →
+                            {event.eventEnd ? 'Event Details →' : 'Read More →'}
                           </a>
                         )}
                       </div>
@@ -830,8 +832,8 @@ export default function App() {
                       </div>
                     </div>
                     <div className="w-full bg-wf-bg h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-wf-primary h-full" 
+                      <div
+                        className="bg-wf-primary h-full"
                         style={{ width: `${((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100}%` }}
                       />
                     </div>
@@ -979,8 +981,8 @@ export default function App() {
                       </div>
                       <div className="text-right">
                         <div className="w-16 bg-wf-bg h-1.5 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-wf-primary h-full" 
+                          <div
+                            className="bg-wf-primary h-full"
                             style={{ width: `${acolyte.health}%` }}
                           />
                         </div>
