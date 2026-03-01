@@ -1,6 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 
+/*
+  Orokin font scaffold:
+  - Place your font files in `public/fonts/` (recommended for Vite)
+    e.g. `public/fonts/orokin.woff2` and `public/fonts/orokin.woff`.
+  - The font-family is named 'orokin' to match inline usage in the app.
+  - Restart the dev server after adding font files.
+*/
+@font-face {
+  font-family: 'orokin';
+  /* Try preferred web formats first, then fall back to the TTF shipped in `public/` */
+  src: url('/orokin.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-wf-bg: #121212;
   --color-wf-surface: #1e1e1f;

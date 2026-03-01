@@ -1081,13 +1081,17 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-12 pt-8 border-t border-wf-border text-center">
         <p className="text-xs text-wf-text-muted uppercase tracking-widest">
-          Data synchronized with Origin System Neural Link
+          Data synchronized with Origin System
         </p>
-        <div className="mt-4 flex justify-center gap-6 opacity-40 grayscale hover:grayscale-0 transition-all">
-          <div className="w-4 h-4 bg-wf-text-muted rounded-full"></div>
-          <div className="w-4 h-4 bg-wf-text-muted rounded-full"></div>
-          <div className="w-4 h-4 bg-wf-text-muted rounded-full"></div>
-        </div>
+        <a
+          href="https://github.com/userkace"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-block text-xs text-wf-text-muted uppercase tracking-widest transition-colors hover:text-wf-primary"
+          style={{ fontFamily: 'orokin' }}
+        >
+          userkace
+        </a>
       </footer>
     </div>
   );
