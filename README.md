@@ -1,144 +1,108 @@
-# Lotus - Real-time Warframe World State Tracker
+# Lotus
 
-A modern, responsive React application that tracks real-time Warframe world state data with live updates every 5 minutes.
+Real-time Warframe World State Tracker — an up-to-date, responsive React app that fetches and displays Warframe worldstate data with live refresh and rich client-side processing.
+
+**Highlights**
+- Real-time worldstate from Tenno Tools API with automatic updates and manual refresh.
+- Comprehensive processing for Sorties, Fissures (including Steel Path), Nightwave, Invasions, Alerts, Events, Void Trader, Void Storms, Arbitrations, Acolytes, Bounties, Faction Projects, Daily Deals, World Cycles, and more.
+- Modern UI built with TailwindCSS, Framer Motion animations, and Lucide icons.
+
+**Quick Links**
+- Project: [README.md](README.md)
+- App entry: [src/App.jsx](src/App.jsx#L1)
+- API helpers: [src/api/warframeService.js](src/api/warframeService.js#L1)
 
 ## Features
 
-### 🎮 Real-time Data Tracking
-- **Sorties** - Daily missions with modifiers and rewards
-- **Void Fissures** - Active fissures with tier filtering
-- **Nightwave** - Daily and weekly acts with progress tracking
-- **Invasions** - Faction conflicts with progress bars
-- **Alerts** - Time-limited missions with rewards
-- **Archon Hunt** - Weekly boss missions
-- **Daily Deals** - Market specials with discounts
-- **Void Trader (Baro Ki'Teer)** - Inventory and timing
-- **World Cycles** - Day/night cycles for all locations
-- **Arbitrations** - Endless mission variants
-- **Void Storms** - Railjack void fissures
-- **Acolytes** - Death squad tracking
-- **Bounties** - Syndicate mission boards
-- **Faction Projects** - Community goals
-- **Kuva Siphons** - Kuva extraction missions
+- **World Cycles** — Day/night cycles for locations are parsed and shown.
+- **Sorties** — boss, mission types, modifiers and mission list.
+- **Void Fissures** — active fissures with tier, type, node, planet, and filtering (regular + Steel Path).
+- **Nightwave** — active acts, daily/weekly challenges, and progress.
+- **Invasions** — attacker/defender rewards and progress tracking.
+- **Alerts** — timed alerts with rewards and time remaining.
+- **Void Trader (Baro Ki'Teer)** — inventory and countdown until arrival.
+- **Daily Deals** — in-game market specials and discounts.
+- **Arbitrations** — high-tier endless mission variants.
+- **Void Storms** — Railjack void-storms and locations.
+- **Acolytes & Bounties** — death squads and syndicate bounties listing.
+- **Faction Projects** — community goals and reward tracking.
+- **Kuva Siphons / Special Nodes** — mission tracking for special events.
+- **Events & News** — in-game news items and event listing.
 
-### 🎨 Modern UI/UX
-- **Responsive Design** - Works on desktop, tablet, and mobile
-- **Dark Theme** - Warframe-inspired color scheme
-- **Loading States** - Smooth animations and placeholders
-- **Error Handling** - Graceful fallbacks and retry options
-- **Auto-refresh** - Updates every 5 minutes
-- **Manual Refresh** - On-demand data updates
+## Tech Stack
 
-### 🚀 Technical Features
-- **Direct API Integration** - Fetches from Tenno Tools API
-- **Platform Support** - PC, PS4, Xbox, Switch (configurable)
-- **SEO Optimized** - Meta tags for search engines
-- **Performance Optimized** - Efficient data processing and rendering
-
-## Technology Stack
-
-- **Frontend**: React 18 with Hooks
-- **Build Tool**: Vite
-- **Styling**: TailwindCSS
-- **API**: Tenno Tools API (direct integration)
-- **Icons**: Lucide React
-- **Animations**: Framer Motion
+- **React 18** (hooks) — app UI
+- **Vite** — dev server and build
+- **TailwindCSS** — styling and theme variables
+- **Framer Motion** — subtle UI animations
+- **Lucide React** — icons
 
 ## Getting Started
 
-### Prerequisites
-- Node.js 16+ 
-- npm or yarn
+Prerequisites:
 
-### Installation
+- Node.js 16+ and npm (or yarn).
+
+Install and run:
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-username/lotus.git
 cd lotus
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-### Usage
+Open `http://localhost:5173` in your browser.
 
-1. Open your browser and navigate to `http://localhost:5173`
-2. The app will automatically start fetching Warframe data
-3. Data refreshes every 5 minutes automatically
-4. Use the refresh button for manual updates
+## Configuration & Usage
 
-## API Integration
+- Default platform and refresh behavior are set in `src/App.jsx`; change the platform string passed to the fetch helper to switch platforms (supported: `pc`, `ps4`, `xb1`, `ns`). See [src/App.jsx](src/App.jsx#L150-L200).
+- Auto-refresh interval: by default the app refreshes every 5 minutes — adjust the interval in `src/App.jsx`.
+- Use the manual refresh button in the UI for on-demand updates.
 
-The application uses the [Tenno Tools API](https://api.tenno.tools/) for real-time Warframe data:
+### Environment & API
 
-- **Endpoint**: `https://api.tenno.tools/worldstate/{platform}`
-- **Platforms**: `pc`, `ps4`, `xb1`, `ns`
-- **Update Frequency**: Every 5 minutes
-- **Data Processing**: Client-side parsing and formatting
+The app fetches data from the Tenno Tools worldstate endpoint:
+
+```
+https://api.tenno.tools/worldstate/{platform}
+```
+
+No API key is required for the public endpoints used by this project.
 
 ## Project Structure
 
 ```
 src/
 ├── api/
-│   └── warframeService.js    # API integration and data processing
-├── App.jsx                  # Main application component
-├── index.css                # Global styles and TailwindCSS
-└── main.jsx                 # Application entry point
+│   └── warframeService.js    # fetch + data helpers (parsing timestamps, nodes, filters)
+├── App.jsx                    # main UI + data wiring
+├── main.jsx                   # React entry
+├── index.css                  # theme variables + Tailwind
+└── assets/                    # icons, images
 ```
 
-## Data Processing
+## Data Processing Notes
 
-The `warframeService.js` handles:
-- **API Fetching** - Direct calls to Tenno Tools API
-- **Timestamp Parsing** - Unix timestamp conversion
-- **Data Formatting** - Human-readable time displays
-- **Challenge Sorting** - Daily/weekly Nightwave grouping
-- **Location Extraction** - Node name to readable location mapping
+- Parsing & formatting occurs client-side in `src/api/warframeService.js` and `src/App.jsx` — timestamps are converted, node IDs mapped to readable locations, and grouped data structures are created for easy rendering.
+- Filtering: fissures, Steel Path, and Void Storms support client-side filters; Nightwave and challenges are sorted into daily/weekly groups.
 
-## Customization
+## Development Tips
 
-### Platform Selection
-Change the default platform in `App.jsx`:
-```javascript
-const data = await fetchWarframeData('pc'); // Change to 'ps4', 'xb1', or 'ns'
-```
-
-### Refresh Interval
-Modify the auto-refresh timer in `App.jsx`:
-```javascript
-const interval = setInterval(fetchData, 5 * 60 * 1000); // Change 5 to desired minutes
-```
-
-### Styling
-Customize the Warframe theme in `index.css`:
-- Primary colors: `--wf-primary` and `--wf-primary-hover`
-- Background: `--wf-bg`
-- Text: `--wf-text` and `--wf-text-muted`
-- Borders: `--wf-border`
+- Run the dev server with `npm run dev` — Vite provides hot reloads.
+- Build for production with `npm run build`.
+- Formatting & linting settings are in the repo; run your preferred tools to match the project's style.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
+1. Fork the repo and create a descriptive branch.
+2. Run the dev server and make changes locally.
+3. Add tests where appropriate and update documentation.
+4. Open a pull request describing the change and rationale.
 
 ## Acknowledgments
 
-- [Tenno Tools](https://api.tenno.tools/) - API provider
-- [Digital Extremes](https://www.warframe.com/) - Warframe developers
-- Warframe community for feedback and suggestions
-
----
+- Tenno Tools API — worldstate provider
+- Digital Extremes — Warframe
 
 **Built with ❤️ for the Warframe community**
