@@ -587,7 +587,9 @@ export const processNightwave = (worldState) => {
       name: challenge.title || 'Unknown Challenge',
       description: challenge.desc || 'Complete this challenge to earn rewards',
       isElite: false,
-      type: 'daily'
+      type: 'daily',
+      reputation: challenge.reputation || 0,
+      expiry: formatTimeRemaining(challenge.expiry)
     }));
 
   const weeklyChallenges = challenges
@@ -596,19 +598,55 @@ export const processNightwave = (worldState) => {
       name: challenge.title || 'Unknown Challenge',
       description: challenge.desc || 'Complete this challenge to earn rewards',
       isElite: challenge.isElite || false,
-      type: 'weekly'
+      type: 'weekly',
+      reputation: challenge.reputation || 0,
+      expiry: formatTimeRemaining(challenge.expiry)
     }));
 
   // Combine daily and weekly challenges, with daily first
   const sortedChallenges = [...dailyChallenges, ...weeklyChallenges];
 
-  // Calculate progress based on season and phase
-  const progressPercent = Math.min(100, Math.round((nightwave.phase / nightwave.maxPhases) * 100));
+  // Calculate progress based on time elapsed in season
+  const activation = new Date(nightwave.activation);
+  const expiry = new Date(nightwave.expiry);
+  const now = new Date();
+  const totalTime = expiry - activation;
+  const elapsedTime = now - activation;
+  const progressPercent = Math.min(100, Math.round((elapsedTime / totalTime) * 100));
 
   return {
-    progress: `Season ${nightwave.season} - Phase ${nightwave.phase}`,
+    season: nightwave.season,
+    progress: `Season ${nightwave.season}`,
     progressPercent,
+    expiry: formatTimeRemaining(nightwave.expiry),
     challenges: sortedChallenges
+  };
+};
+
+/**
+ * Processes Archon Hunt data from Warframe Stat API
+ * @param {Object} worldState - Full world state data from API
+ * @returns {Object} Processed archon hunt data
+ */
+export const processArchonHunt = (worldState) => {
+  if (!worldState || !worldState.archonHunt) {
+    return null;
+  }
+
+  const archonHunt = worldState.archonHunt;
+
+  return {
+    boss: archonHunt.boss || 'Unknown Archon',
+    faction: archonHunt.faction || 'Unknown Faction',
+    timeLeft: formatTimeRemaining(archonHunt.expiry),
+    rewardPool: archonHunt.rewardPool || 'Unknown Rewards',
+    missions: (archonHunt.missions || []).map((mission, index) => ({
+      id: String(index + 1).padStart(2, '0'),
+      type: mission.type || 'Unknown Mission',
+      node: mission.node || 'Unknown Location',
+      modifier: `${mission.type || 'Unknown'} - ${archonHunt.faction || 'Unknown'}`,
+      location: mission.node || 'Unknown Location'
+    }))
   };
 };
 

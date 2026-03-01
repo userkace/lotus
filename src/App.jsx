@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Info,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import {
   fetchWarframeData,
@@ -29,6 +30,7 @@ import {
   processNightwave,
   processVoidTrader,
   processDailyDeals,
+  processArchonHunt,
   processArbitrations,
   processVoidStorms,
   processAcolytes,
@@ -159,6 +161,7 @@ export default function App() {
   const [expandedEvents, setExpandedEvents] = useState(false);
   const [expandedFlashSales, setExpandedFlashSales] = useState(false);
   const [selectedSection, setSelectedSection] = useState('all'); // 'all', 'fissures', 'steelPath', 'voidStorms'
+  const [sortieMode, setSortieMode] = useState('sortie'); // 'sortie' or 'archonHunt'
   const [platform, setPlatform] = useState('pc');
   const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
 
@@ -239,6 +242,7 @@ export default function App() {
   }, [warframeData]);
 
   const sortie = warframeData ? processSortie(warframeData) : null;
+  const archonHunt = warframeData ? processArchonHunt(warframeData) : null;
   const fissures = warframeData ? processFissures(warframeData, fissureFilter) : [];
   const steelPathFissures = warframeData ? processFissures(warframeData, steelPathFilter, true) : [];
   const invasions = warframeData ? processInvasions(warframeData) : [];
@@ -492,50 +496,47 @@ export default function App() {
 
           {/* Section Selector */}
           <section className="mt-8">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-              <SectionHeader title="Options" />
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedSection('all')}
-                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
-                    selectedSection === 'all'
-                      ? 'bg-wf-primary text-black'
-                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setSelectedSection('fissures')}
-                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
-                    selectedSection === 'fissures'
-                      ? 'bg-wf-primary text-black'
-                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                  }`}
-                >
-                  Void Fissures
-                </button>
-                <button
-                  onClick={() => setSelectedSection('steelPath')}
-                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
-                    selectedSection === 'steelPath'
-                      ? 'bg-wf-primary text-black'
-                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                  }`}
-                >
-                  Steel Path Fissures
-                </button>
-                <button
-                  onClick={() => setSelectedSection('voidStorms')}
-                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
-                    selectedSection === 'voidStorms'
-                      ? 'bg-wf-primary text-black'
-                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
-                  }`}
-                >
-                  Void Storms
-                </button>
-              </div>
+            <div className="flex justify-center gap-2 mb-4">
+              <button
+                onClick={() => setSelectedSection('all')}
+                className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                  selectedSection === 'all'
+                    ? 'bg-wf-primary text-black'
+                    : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                }`}
+              >
+                All Sections
+              </button>
+              <button
+                onClick={() => setSelectedSection('fissures')}
+                className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                  selectedSection === 'fissures'
+                    ? 'bg-wf-primary text-black'
+                    : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                }`}
+              >
+                Void Fissures
+              </button>
+              <button
+                onClick={() => setSelectedSection('steelPath')}
+                className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                  selectedSection === 'steelPath'
+                    ? 'bg-wf-primary text-black'
+                    : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                }`}
+              >
+                Steel Path Fissures
+              </button>
+              <button
+                onClick={() => setSelectedSection('voidStorms')}
+                className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                  selectedSection === 'voidStorms'
+                    ? 'bg-wf-primary text-black'
+                    : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                }`}
+              >
+                Void Storms
+              </button>
             </div>
           </section>
 
@@ -749,9 +750,33 @@ export default function App() {
             )}
           </section>
 
-          {/* Sortie */}
+          {/* Sortie / Archon Hunt */}
           <section>
-            <SectionHeader title="Sortie Analysis" className='mb-4' />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+              <SectionHeader title={sortieMode === 'sortie' ? 'Sortie' : 'Archon Hunt'} />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSortieMode('sortie')}
+                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                    sortieMode === 'sortie'
+                      ? 'bg-wf-primary text-black'
+                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                  }`}
+                >
+                  Sortie
+                </button>
+                <button
+                  onClick={() => setSortieMode('archonHunt')}
+                  className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
+                    sortieMode === 'archonHunt'
+                      ? 'bg-wf-primary text-black'
+                      : 'bg-wf-border text-wf-text-muted hover:bg-wf-surface'
+                  }`}
+                >
+                  Archon Hunt
+                </button>
+              </div>
+            </div>
             {loading ? (
               <Card className="p-5">
                 <div className="animate-pulse space-y-4">
@@ -764,33 +789,41 @@ export default function App() {
                   </div>
                 </div>
               </Card>
-            ) : sortie ? (
+            ) : (sortieMode === 'sortie' ? sortie : archonHunt) ? (
               <Card className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold">{sortie.boss}</h3>
-                    <p className="text-wf-text-muted text-xs uppercase">{sortie.missionType}</p>
-                  </div>
+                <div className="flex justify-between items-end mb-4">
+                  <span className="text-sm text-white uppercase font-bold">
+                    {sortieMode === 'sortie' ? sortie.boss : archonHunt.boss}
+                  </span>
                   <div className="text-right">
-                    <p className="text-sm font-mono text-wf-primary">Ends in: {sortie.timeLeft}</p>
+                    <p className="text-xs text-wf-primary font-semibold font-mono">
+                      Ends: {sortieMode === 'sortie' ? sortie.timeLeft : archonHunt.timeLeft}
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  {sortie.missions.map((m) => (
-                    <div key={m.id} className="flex items-center gap-4 py-3 border-t border-wf-border/50">
-                      <span className="text-wf-text-muted font-mono text-sm">{m.id}</span>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{m.type}</p>
-                        <p className="text-xs text-wf-text-muted italic">{m.modifier}</p>
+                <div className="space-y-6">
+                  {(sortieMode === 'sortie' ? sortie.missions : archonHunt.missions).map((m) => (
+                    <div key={m.id} className="border-l-2 border-wf-border pl-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">{m.type}</p>
+                          <p className="text-xs text-wf-text-muted italic">
+                            {sortieMode === 'sortie' ? m.modifier : m.modifier}
+                          </p>
+                        </div>
+                        <div className="text-right ml-3">
+                          <span className="text-xs text-wf-text-muted font-mono">{m.id}</span>
+                        </div>
                       </div>
-                      <span className="text-xs uppercase tracking-tighter text-wf-text-muted">{m.location}</span>
                     </div>
                   ))}
                 </div>
               </Card>
             ) : (
               <Card className="p-5">
-                <p className="text-wf-text-muted text-center">No sortie data available</p>
+                <p className="text-wf-text-muted text-center">
+                  No {sortieMode === 'sortie' ? 'sortie' : 'archon hunt'} data available
+                </p>
               </Card>
             )}
           </section>
@@ -813,27 +846,35 @@ export default function App() {
             ) : nightwave ? (
               <Card className="p-5">
                 <div className="flex justify-between items-end mb-4">
-                  <span className="text-xs text-wf-text-muted uppercase">Season Progress</span>
-                  <span className="text-sm font-bold">{nightwave.progress}</span>
-                </div>
-                <div className="w-full bg-wf-bg h-1.5 rounded-full mb-6 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${nightwave.progressPercent}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="bg-wf-primary h-full"
-                  />
+                  <span className="text-sm text-white uppercase font-bold">Season {nightwave.season}</span>
+                  <div className="text-right">
+                    <p className="text-xs text-wf-primary font-semibold font-mono">Ends: {nightwave.expiry}</p>
+                  </div>
                 </div>
                 <div className="space-y-6">
                   {/* Daily Challenges */}
                   <div>
-                    <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Daily Acts</p>
+                    <div className="flex justify-between items-center mb-3">
+                      <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Daily Acts</p>
+                      <p className="text-xs text-wf-text-muted">{nightwave.challenges.filter(c => c.type === 'daily').length} active</p>
+                    </div>
                     {nightwave.challenges.filter(c => c.type === 'daily').length > 0 ? (
                       <div className="space-y-3 mt-3">
                         {nightwave.challenges.filter(c => c.type === 'daily').slice(0, expandedDaily ? undefined : 1).map((c, i) => (
-                          <div key={i} className="border-l-2 border-wf-primary pl-3">
-                            <p className="text-sm font-semibold">{c.name}</p>
-                            <p className="text-xs text-wf-text-muted">{c.description}</p>
+                          <div key={i} className="border-l-2 border-wf-border pl-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold">{c.name}</p>
+                                <p className="text-xs text-wf-text-muted">{c.description}</p>
+                              </div>
+                              <div className="text-right ml-3">
+                                <div className="flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-wf-primary" />
+                                  <span className="text-xs font-semibold text-wf-primary">{c.reputation}</span>
+                                </div>
+                                <p className="text-xs text-wf-text-muted font-mono">{c.expiry}</p>
+                              </div>
+                            </div>
                           </div>
                         ))}
                         {nightwave.challenges.filter(c => c.type === 'daily').length > 1 && (
@@ -858,13 +899,30 @@ export default function App() {
 
                   {/* Weekly Challenges */}
                   <div>
-                    <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Weekly Acts</p>
+                    <div className="flex justify-between items-center mb-3">
+                      <p className="text-[10px] text-wf-text-muted uppercase font-bold tracking-widest">Weekly Acts</p>
+                      <div className="text-right">
+                        <p className="text-xs text-wf-text-muted">{nightwave.challenges.filter(c => c.type === 'weekly').length} active</p>
+                        <p className="text-xs text-wf-primary font-semibold font-mono">{nightwave.challenges.filter(c => c.type === 'weekly')[0]?.expiry || 'No timer'}</p>
+                      </div>
+                    </div>
                     {nightwave.challenges.filter(c => c.type === 'weekly').length > 0 ? (
                       <div className="space-y-3 mt-3">
                         {nightwave.challenges.filter(c => c.type === 'weekly').slice(0, expandedWeekly ? undefined : 1).map((c, i) => (
-                          <div key={i} className="border-l-2 border-wf-border opacity-50 pl-3">
-                            <p className="text-sm font-semibold">{c.name}</p>
-                            <p className="text-xs text-wf-text-muted">{c.description}</p>
+                          <div key={i} className="border-l-2 border-wf-border pl-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold">{c.name}</p>
+                                <p className="text-xs text-wf-text-muted">{c.description}</p>
+                              </div>
+                              <div className="text-right ml-3">
+                                <div className="flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-wf-primary" />
+                                  <span className="text-xs font-semibold text-wf-primary">{c.reputation}</span>
+                                </div>
+                                {c.isElite && <p className="text-xs text-wf-accent">Elite</p>}
+                              </div>
+                            </div>
                           </div>
                         ))}
                         {nightwave.challenges.filter(c => c.type === 'weekly').length > 1 && (
@@ -897,7 +955,7 @@ export default function App() {
 
           {/* Faction Projects */}
           <section>
-            <SectionHeader title="Faction Projects" className='mb-4' />
+            <SectionHeader title="Faction Construction" className='mb-4' />
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
@@ -975,7 +1033,7 @@ export default function App() {
           
           {/* Daily Deals */}
           <section>
-            <SectionHeader title="Daily Deals" className='mb-4' />
+            <SectionHeader title="Darvo's Deal" className='mb-4' />
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 2 }).map((_, i) => (
