@@ -98,6 +98,12 @@ export const formatTimeRemaining = (expiry) => {
     return 'Expired';
   }
 
+  // Check if the difference is unreasonably large (more than 30 days)
+  const maxReasonableDiff = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+  if (diff > maxReasonableDiff) {
+    return 'Invalid Time';
+  }
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -624,7 +630,7 @@ export const processNightwave = (worldState) => {
   };
 };
 
-/**
+ /**
  * Processes Archon Hunt data from Warframe Stat API
  * @param {Object} worldState - Full world state data from API
  * @returns {Object} Processed archon hunt data
@@ -837,17 +843,25 @@ export const processArbitrations = (worldState) => {
   }
 
   const arbitration = worldState.arbitration;
+  
+  // Debug: Log the raw arbitration data
+  console.log('Raw arbitration data:', arbitration);
+
+  // Check if arbitration is expired or has placeholder data
+  if (arbitration.expired || 
+      arbitration.type === 'Unknown' || 
+      arbitration.node === 'SolNode000' ||
+      !arbitration.activation || 
+      arbitration.activation === '1970-01-01T00:00:00.000Z') {
+    console.log('Arbitration is not active or has placeholder data');
+    return null;
+  }
 
   return {
     type: arbitration.type || 'Unknown',
-    location: arbitration.node || 'Unknown',
+    location: extractLocationFromNode(arbitration.node) || arbitration.node || 'Unknown',
     faction: arbitration.enemy || 'Unknown',
-    timeLeft: formatTimeRemaining(arbitration.expiry),
-    rewards: arbitration.rewards?.map(reward => ({
-      name: reward.item,
-      type: reward.type,
-      chance: reward.chance
-    })) || []
+    timeLeft: formatTimeRemaining(arbitration.expiry)
   };
 };
 
@@ -884,28 +898,6 @@ export const processVoidStorms = (worldState, filter = 'all') => {
   return storms;
 };
 
-/**
- * Processes acolyte data from Warframe Stat API
- * @param {Object} worldState - Full world state data from API
- * @returns {Array} Processed acolyte data
- */
-export const processAcolytes = (worldState) => {
-  if (!worldState || !worldState.persistentEnemies) {
-    return [];
-  }
-
-  return worldState.persistentEnemies.map(acolyte => ({
-    name: acolyte.name || 'Unknown',
-    health: Math.round((acolyte.healthPercent || 0) * 100),
-    location: acolyte.node || 'Unknown',
-    discovered: acolyte.isDiscovered || false,
-    rewards: acolyte.rewards?.map(reward => ({
-      name: reward.item,
-      type: reward.type,
-      chance: reward.chance
-    })) || []
-  }));
-};
 
 /**
  * Processes faction project data from Warframe Stat API
@@ -918,9 +910,8 @@ export const processFactionProjects = (worldState) => {
   }
 
   // Debug: Log available keys to see what we have
-  console.log('Available worldState keys:', Object.keys(worldState));
-  console.log('ConstructionProgress data:', worldState.constructionProgress);
-  console.log('Events data:', worldState.events?.slice(0, 3)); // Show first 3 events
+  // console.log('Available worldState keys:', Object.keys(worldState));
+
 
   if (!worldState.constructionProgress) {
     // Fallback to events if constructionProgress doesn't exist

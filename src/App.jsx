@@ -31,9 +31,7 @@ import {
   processVoidTrader,
   processDailyDeals,
   processArchonHunt,
-  processArbitrations,
   processVoidStorms,
-  processAcolytes,
   processBounties,
   processFactionProjects,
   processFlashSales,
@@ -363,9 +361,7 @@ export default function App() {
   const events = warframeData?.news || [];
   const flashSales = warframeData ? processFlashSales(warframeData) : [];
   const alerts = warframeData?.alerts || [];
-  const arbitrations = warframeData ? processArbitrations(warframeData) : null;
   const voidStorms = warframeData ? processVoidStorms(warframeData, voidStormFilter) : [];
-  const acolytes = warframeData ? processAcolytes(warframeData) : [];
   const bounties = warframeData ? processBounties(warframeData) : [];
   const factionProjects = warframeData ? processFactionProjects(warframeData) : [];
 
@@ -1292,103 +1288,8 @@ export default function App() {
             )}
           </section>
 
-          {/* Arbitrations */}
-          <section>
-            <SectionHeader title="Arbitrations" className='mb-4' />
-            {loading ? (
-              <Card className="p-5">
-                <div className="animate-pulse space-y-4">
-                  <div className="h-4 bg-wf-border rounded w-1/3"></div>
-                  <div className="h-2 bg-wf-border rounded w-full"></div>
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-8 bg-wf-border rounded"></div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            ) : arbitrations ? (
-              <Card className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold">{arbitrations.type}</h3>
-                    <p className="text-wf-text-muted text-xs uppercase">{arbitrations.faction}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-mono text-wf-primary">
-                      Ends in: {arbitrations.timeLeft}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs text-wf-text-muted uppercase font-bold tracking-widest">Location</p>
-                  <p className="text-sm">{arbitrations.location}</p>
-                  {arbitrations.rewards.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-xs text-wf-text-muted uppercase font-bold tracking-widest">Possible Rewards</p>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        {arbitrations.rewards.slice(0, 4).map((reward, i) => (
-                          <div key={i} className="text-xs">
-                            <p className="font-semibold truncate">{reward.name}</p>
-                            <p className="text-wf-primary">{Math.round(reward.chance * 100)}%</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ) : (
-              <Card className="p-5">
-                <p className="text-wf-text-muted text-center">No Arbitration available</p>
-              </Card>
-            )}
-          </section>
-
-          {/* Acolytes */}
-          <section>
-            <SectionHeader title="Acolytes" className='mb-4' />
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-3 bg-wf-border rounded w-2/3"></div>
-                      <div className="h-2 bg-wf-border rounded w-1/2"></div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : acolytes.length > 0 ? (
-              <div className="space-y-3">
-                {acolytes.map((acolyte, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-sm font-semibold">{acolyte.name}</p>
-                        <p className="text-xs text-wf-text-muted">{acolyte.location}</p>
-                        <p className="text-xs text-wf-primary">{acolyte.discovered ? 'Discovered' : 'Hidden'}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="w-16 bg-wf-bg h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-wf-primary h-full"
-                            style={{ width: `${acolyte.health}%` }}
-                          />
-                        </div>
-                        <p className="text-[10px] font-bold text-wf-primary mt-1">{acolyte.health}%</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-3">
-                <p className="text-wf-text-muted text-center">No Acolytes active</p>
-              </Card>
-            )}
-          </section>
-
+          
+          
 
         </aside>
       </div>
