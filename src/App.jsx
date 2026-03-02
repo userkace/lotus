@@ -1308,7 +1308,7 @@ export default function App() {
                     : 'bg-wf-border/70 text-wf-text-muted hover:bg-wf-border hover:text-wf-primary'
                 }`}
               >
-                {expandedFlashSales ? 'Show Less' : `View All (${flashSales.length})`}
+                {expandedFlashSales ? 'Show Less' : `View All • ${flashSales.length}`}
               </button>
             )}
           </div>
