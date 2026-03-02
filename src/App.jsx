@@ -606,7 +606,14 @@ export default function App() {
                           <div className="font-semibold">{inv.factionAttacker}</div>
                           <div className="text-wf-text-muted">{inv.attackerReward}</div>
                         </div>
-                        <div className="absolute inset-0 bg-wf-primary/20" style={{width: `${Math.max(0, inv.progress)}%`}}></div>
+                        <div className={`absolute inset-0 ${inv.progress > 50 ? 'bg-wf-primary/50' : 'bg-wf-primary/20'}`} style={{width: `${Math.max(0, inv.progress)}%`}}></div>
+                        {/* Glow at the head for winning attacker */}
+                        {inv.progress > 50 && (
+                          <div className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 animate-pulse" style={{left: `${inv.progress}%`}}>
+                            <div className="w-4 h-4 bg-wf-primary rounded-full blur-md opacity-60"></div>
+                            <div className="absolute inset-0 w-3 h-3 bg-wf-primary rounded-full blur-sm opacity-80"></div>
+                          </div>
+                        )}
                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white font-mono text-xs z-20">
                           {inv.progress.toFixed(2)}%
                         </div>
@@ -617,7 +624,14 @@ export default function App() {
                           <div className="font-semibold">{inv.factionDefender}</div>
                           <div className="text-wf-text-muted">{inv.defenderReward}</div>
                         </div>
-                        <div className="absolute top-0 bottom-0 right-0 bg-wf-primary/20" style={{width: `${Math.max(0, 100-inv.progress)}%`}}></div>
+                        <div className={`absolute top-0 bottom-0 right-0 ${(100 - inv.progress) > 50 ? 'bg-wf-primary/50' : 'bg-wf-primary/20'}`} style={{width: `${Math.max(0, 100-inv.progress)}%`}}></div>
+                        {/* Glow at the head for winning defender */}
+                        {(100 - inv.progress) > 50 && (
+                          <div className="absolute top-1/2 transform -translate-y-1/2 translate-x-1/2 animate-pulse" style={{right: `${100 - inv.progress}%`}}>
+                            <div className="w-4 h-4 bg-wf-primary rounded-full blur-md opacity-60"></div>
+                            <div className="absolute inset-0 w-3 h-3 bg-wf-primary rounded-full blur-sm opacity-80"></div>
+                          </div>
+                        )}
                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white font-mono text-xs z-20">
                           {(100 - inv.progress).toFixed(2)}%
                         </div>
