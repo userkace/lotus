@@ -534,15 +534,36 @@ export default function App() {
             </Card>
           ))
         ) : cycles.length > 0 ? (
-          cycles.map((cycle, i) => (
-            <Card key={i}>
-              <h3 className="text-xs font-semibold text-wf-text-muted uppercase mb-2">{cycle.location}</h3>
-              <div className="flex items-center justify-between">
-                <span className="text-xl font-bold">{cycle.state}</span>
-                <span className="text-wf-primary text-sm font-mono">{cycleTimes[i] || cycle.timeLeft}</span>
-              </div>
-            </Card>
-          ))
+          cycles.map((cycle, i) => {
+            const timeLeft = cycleTimes[i] || cycle.timeLeft;
+            const isExpired = timeLeft.includes('Expired:');
+            
+            // When expired, the current state is the inverse of what the API reports
+            const currentState = isExpired ? 
+              (cycle.state === 'Day' ? 'Night' : cycle.state === 'Night' ? 'Day' : 
+               cycle.state === 'Warm' ? 'Cold' : cycle.state === 'Cold' ? 'Warm' :
+               cycle.state === 'Vome' ? 'Fass' : cycle.state === 'Fass' ? 'Vome' : cycle.state) 
+              : cycle.state;
+            
+            return (
+              <Card key={i}>
+                <h3 className="text-xs font-semibold text-wf-text-muted uppercase mb-2">{cycle.location}</h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xl font-bold ${isExpired ? 'text-wf-text-muted' : ''}`}>{currentState}</span>
+                    {isExpired && (
+                      <span className="text-wf-primary text-xs font-semibold">
+                        {cycle.state}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-sm font-mono ${isExpired ? 'text-wf-primary' : 'text-wf-primary'}`}>
+                    {timeLeft}
+                  </span>
+                </div>
+              </Card>
+            );
+          })
         ) : (
           <Card className="md:col-span-3">
             <p className="text-wf-text-muted text-center">No cycle data available</p>
