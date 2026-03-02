@@ -1354,7 +1354,14 @@ export default function App() {
 
       {/* Bounties - Full Width Section */}
       <section className="mt-8">
-        <SectionHeader title="Bounties" className='mb-4' />
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <SectionHeader title="Bounties" />
+          {!loading && bounties.length > 0 && (
+            <div className="text-sm text-wf-text-muted">
+              {bounties.reduce((total, bounty) => total + bounty.jobs.length, 0)} total bounties across {bounties.length} locations
+            </div>
+          )}
+        </div>
         {loading ? (
           <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -1380,40 +1387,59 @@ export default function App() {
                 <div className="flex items-center gap-3 mb-4">
                   <h3 className="text-lg font-bold">{bounty.syndicate}</h3>
                   <span className="text-wf-text-muted text-sm">{bounty.location}</span>
+                  {bounty.expiry && (
+                    <span className="text-wf-primary text-sm font-mono">
+                      {formatTimeRemaining(bounty.expiry)}
+                    </span>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {bounty.jobs.map((job, jobIndex) => (
                     <Card key={jobIndex} className="p-3">
-                      {job.title !== `Job ${job.id}` && (
-                        <div className="mb-2">
-                          <h4 className="text-sm font-semibold">{job.title}</h4>
-                        </div>
-                      )}
+                      <div className="mb-2">
+                        <h4 className="text-sm font-semibold">{job.title}</h4>
+                      </div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs bg-wf-border px-2 py-1 rounded">
-                          Level {job.minLevel}-{job.maxLevel}
+                          Level {job.enemyLevels[0]}-{job.enemyLevels[1]}
                         </span>
-                        {job.rotation && (
+                        {job.minMR > 0 && (
                           <span className="text-xs bg-wf-primary/20 px-2 py-1 rounded">
-                            Rotation {job.rotation}
+                            MR {job.minMR}
                           </span>
                         )}
                       </div>
-                      {job.xpAmounts.length > 0 && (
+                      {job.isVault && (
+                        <div className="text-xs text-wf-primary mb-1">
+                          Vault: {job.locationTag}
+                        </div>
+                      )}
+                      {job.timeBound && (
                         <div className="text-xs text-wf-text-muted mb-1">
-                          +{job.xpAmounts[0]} XP
+                          {job.timeBound === 'night' ? '🌙 Night Only' : '☀️ Day Only'}
+                        </div>
+                      )}
+                      {job.standingStages.length > 0 && (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Sparkles className="w-3 h-3 text-wf-primary" />
+                          <span className="text-xs text-wf-primary font-semibold">
+                            {job.standingStages[0]}-{job.standingStages[job.standingStages.length - 1]}
+                          </span>
                         </div>
                       )}
                       {job.rewards.length > 0 && (
                         <div className="space-y-1">
+                          <div className="text-xs text-wf-text-muted font-semibold">Rewards:</div>
                           {job.rewards.slice(0, 3).map((reward, rewardIndex) => (
-                            <div key={rewardIndex} className="text-xs text-wf-text-muted flex justify-between">
-                              <span>{reward.name} {reward.count > 1 && `x${reward.count}`}</span>
-                              {reward.chance > 0 && (
-                                <span className="text-wf-primary">{Math.round(reward.chance * 100)}%</span>
-                              )}
+                            <div key={rewardIndex} className="text-xs text-wf-text-muted">
+                              {reward.name}
                             </div>
                           ))}
+                          {job.rewards.length > 3 && (
+                            <div className="text-xs text-wf-text-muted italic">
+                              +{job.rewards.length - 3} more...
+                            </div>
+                          )}
                         </div>
                       )}
                     </Card>

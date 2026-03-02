@@ -1008,8 +1008,8 @@ export const processBounties = (worldState) => {
   }
 
   const sortOrder = [
-    'Ostron',
-    'Solaris United',
+    'Ostrons',
+    'Solaris United', 
     'Vox Solaris',
     'Entrati',
     'Cavia',
@@ -1018,7 +1018,7 @@ export const processBounties = (worldState) => {
 
   // Bounty location mapping
   const bountyLocations = {
-    'Ostron': 'Cetus, Earth',
+    'Ostrons': 'Cetus, Earth',
     'Solaris United': 'Fortuna, Venus',
     'Vox Solaris': 'Orb Vallis, Venus',
     'Entrati': 'Necralisk, Deimos',
@@ -1026,23 +1026,34 @@ export const processBounties = (worldState) => {
     'The Holdfasts': 'Duviri'
   };
 
-  const processedBounties = worldState.syndicateMissions.map(bounty => ({
+  // Filter only syndicates with actual bounty jobs
+  const bountiesWithJobs = worldState.syndicateMissions.filter(
+    syndicate => syndicate.jobs && syndicate.jobs.length > 0
+  );
+
+  const processedBounties = bountiesWithJobs.map(bounty => ({
     syndicate: bounty.syndicate || 'Unknown',
-    location: bountyLocations[bounty.syndicate] || bounty.node || 'Unknown',
-    jobs: bounty.missions?.map((job, index) => ({
+    location: bountyLocations[bounty.syndicate] || 'Unknown',
+    expiry: bounty.expiry,
+    jobs: bounty.jobs.map((job, index) => ({
       id: index + 1,
-      title: job.description || `Job ${index + 1}`,
-      rotation: job.type || '',
-      xpAmounts: job.xpAmounts || [],
-      rewards: job.rewards?.map(reward => ({
-        name: reward.item,
-        type: reward.type,
-        count: reward.count || 1,
-        chance: reward.chance || 0
-      })) || [],
-      minLevel: job.minLevel || 0,
-      maxLevel: job.maxLevel || 0
-    })) || []
+      title: job.type || `Job ${index + 1}`,
+      type: job.type || '',
+      enemyLevels: job.enemyLevels || [0, 0],
+      standingStages: job.standingStages || [],
+      minMR: job.minMR || 0,
+      isVault: job.isVault || false,
+      locationTag: job.locationTag || '',
+      timeBound: job.timeBound || '',
+      expiry: job.expiry,
+      // Format rewards from rewardPool
+      rewards: (job.rewardPool || []).map((reward, rewardIndex) => ({
+        name: reward === "Pattern Mismatch. Results inaccurate." ? "Standard Rewards" : reward,
+        type: 'Reward',
+        count: 1,
+        chance: 0
+      }))
+    }))
   }));
 
   // Sort bounties according to the specified order
