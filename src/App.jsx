@@ -1130,42 +1130,27 @@ export default function App() {
                       <div className="text-sm text-white">
                         {project.type} <span className="text-xs text-wf-text-muted">({project.faction})</span>
                       </div>
-                      <div className="text-xs text-wf-text-muted">{project.timeRemaining}</div>
+                      <div className="text-xs text-wf-primary font-bold font-mono">{project.progress.toFixed(1)}%</div>
                     </div>
-                    {/* Progress Graph */}
-                    {project.progressHistory && project.progressHistory.length > 2 && (
-                      <div className="mt-3 relative">
-                        <div className="absolute top-2 left-2 flex items-center gap-2 text-xs font-bold text-wf-primary z-20">
-                          {project.progress}%
-                          {project.progress < 100 && (
-                            <div className="relative w-2 h-2 flex items-center justify-center">
-                              <div className="absolute w-1.5 h-1.5 bg-wf-primary rounded-full"></div>
-                              <div className="absolute w-1.5 h-1.5 bg-wf-primary rounded-full animate-ping"></div>
+                    {/* Progress Bar with end glow */}
+                    <div className="mt-3 relative">
+
+                      <div className="h-8 bg-wf-border/50 rounded overflow-hidden relative">
+                        {/* Progress fill */}
+                        <div 
+                          className="h-full bg-wf-primary/50 transition-all duration-500 ease-out relative"
+                          style={{ width: `${Math.min(100, project.progress)}%` }}
+                        >
+                          {/* Glow at the end */}
+                          {project.progress > 0 && project.progress < 100 && (
+                            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 animate-pulse">
+                              <div className="w-4 h-4 bg-wf-primary rounded-full blur-md opacity-60"></div>
+                              <div className="absolute inset-0 w-3 h-3 bg-wf-primary rounded-full blur-sm opacity-80"></div>
                             </div>
                           )}
                         </div>
-                        <div className="h-16 bg-wf-bg rounded p-2 relative overflow-visible">
-                          <div className="absolute inset-0 flex items-end justify-between px-2 pb-1">
-                            {project.progressHistory.slice(0, -1).map((point, index) => {
-                              const height = (point[1] / 100) * 100; // percentage to height
-                              const baseTime = project.progressHistory[0][0]; // First data point as base
-                              return (
-                                <div
-                                  key={index}
-                                  className="bg-wf-primary w-1 rounded-t hover:bg-wf-primary/80 transition-colors relative group"
-                                  style={{ height: `${height}%` }}
-                                >
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
-                                    <div>{point[1].toFixed(2)}%</div>
-                                    <div className="text-wf-text-muted text-[10px]">{formatTimeFromBase(point[0], baseTime)}</div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
                       </div>
-                    )}
+                    </div>
                     {project.rewards.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {project.rewards.slice(0, 2).map((reward, rewardIndex) => (

@@ -913,38 +913,72 @@ export const processAcolytes = (worldState) => {
  * @returns {Array} Processed faction project data
  */
 export const processFactionProjects = (worldState) => {
-  if (!worldState || !worldState.events) {
+  if (!worldState) {
     return [];
   }
 
-  return worldState.events.map(project => {
-    // Progress is already a percentage (0-100), so keep two decimal places
-    const progressPercent = Math.round((project.progress || 0) * 100) / 100;
+  // Debug: Log available keys to see what we have
+  console.log('Available worldState keys:', Object.keys(worldState));
+  console.log('ConstructionProgress data:', worldState.constructionProgress);
+  console.log('Events data:', worldState.events?.slice(0, 3)); // Show first 3 events
 
-    // Hardcoded faction mapping for faction projects
-    const factionMapping = {
-      'Balor Fomorian': 'Grineer',
-      'Razorback': 'Corpus',
-      'Ghoul Purge': 'Grineer',
-      'Infested Outbreak': 'Infested',
-      'Arbitration': 'None'
-    };
+  if (!worldState.constructionProgress) {
+    // Fallback to events if constructionProgress doesn't exist
+    if (!worldState.events) {
+      return [];
+    }
+    
+    // Filter events for faction-related ones
+    const factionEvents = worldState.events.filter(event => 
+      event.description && (
+        event.description.toLowerCase().includes('fomorian') ||
+        event.description.toLowerCase().includes('razorback')
+      )
+    );
 
-    const faction = factionMapping[project.description] || 'Unknown';
+    return factionEvents.map(project => {
+      const progressPercent = Math.round((project.progress || 0) * 100) / 100;
+      return {
+        type: project.description || 'Unknown',
+        faction: project.description?.toLowerCase().includes('fomorian') ? 'Grineer' : 'Corpus',
+        progress: progressPercent,
+        timeRemaining: formatTimeRemaining(project.expiry),
+        location: 'System-wide',
+        rewards: []
+      };
+    });
+  }
 
-    return {
-      type: project.description || 'Unknown',
-      faction: faction,
-      progress: progressPercent,
-      timeRemaining: formatTimeRemaining(project.expiry),
-      location: 'System-wide', // Faction projects are system-wide events
-      rewards: project.rewards?.map(reward => ({
-        name: reward.item,
-        type: reward.type,
-        count: reward.count || 1
-      })) || []
-    };
-  });
+  const construction = worldState.constructionProgress;
+  const projects = [];
+
+  // Process Fomorian progress
+  if (construction.fomorianProgress) {
+    const fomorianProgress = parseFloat(construction.fomorianProgress) || 0;
+    projects.push({
+      type: 'Fomorian',
+      faction: 'Grineer',
+      progress: fomorianProgress,
+      timeRemaining: 'Unknown',
+      location: 'System-wide',
+      rewards: []
+    });
+  }
+
+  // Process Razorback progress
+  if (construction.razorbackProgress) {
+    const razorbackProgress = parseFloat(construction.razorbackProgress) || 0;
+    projects.push({
+      type: 'Razorback',
+      faction: 'Corpus',
+      progress: razorbackProgress,
+      timeRemaining: 'Unknown',
+      location: 'System-wide',
+      rewards: []
+    });
+  }
+
+  return projects;
 };
 
 /**
