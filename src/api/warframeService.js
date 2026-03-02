@@ -508,11 +508,12 @@ export const processInvasions = (worldState) => {
   const activeInvasions = worldState.invasions.filter(invasion => !invasion.completed);
 
   return activeInvasions.map(invasion => {
-    const progressPercent = Math.round(invasion.completion || 0);
-
+    const progressPercent = invasion.completion || 0;
+    
     return {
       node: invasion.node || 'Unknown',
       planet: extractPlanetFromNode(invasion.node),
+      expiry: invasion.expiry || null,
       progress: progressPercent,
       factionAttacker: invasion.attacker?.faction || 'Unknown',
       factionDefender: invasion.defender?.faction || 'Unknown',

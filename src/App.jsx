@@ -582,17 +582,28 @@ export default function App() {
                       <div>
                         <p className="text-sm font-bold">{inv.node}</p>
                       </div>
-                      <span className="text-wf-primary font-mono text-xs">{inv.progress}%</span>
                     </div>
                     <div className="space-y-2">
-                      <div className={`text-xs p-2 rounded ${inv.progress > 0 ? 'bg-wf-primary/20' : 'bg-wf-border/50'}`}>
-                        <div className="font-semibold">{inv.factionAttacker}</div>
-                        <div className="text-wf-text-muted">{inv.attackerReward}</div>
+                      <div className="relative bg-wf-border/50 rounded overflow-hidden">
+                        <div className="text-xs p-2 rounded relative z-10">
+                          <div className="font-semibold">{inv.factionAttacker}</div>
+                          <div className="text-wf-text-muted">{inv.attackerReward}</div>
+                        </div>
+                        <div className="absolute inset-0 bg-wf-primary/20" style={{width: `${Math.max(0, inv.progress)}%`}}></div>
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white font-mono text-xs z-20">
+                          {inv.progress.toFixed(2)}%
+                        </div>
                       </div>
                       <div className="text-xs text-center text-wf-text-muted">vs</div>
-                      <div className={`text-xs p-2 rounded ${inv.progress <= 0 ? 'bg-wf-primary/20' : 'bg-wf-border/50'}`}>
-                        <div className="font-semibold">{inv.factionDefender}</div>
-                        <div className="text-wf-text-muted">{inv.defenderReward}</div>
+                      <div className="relative bg-wf-border/50 rounded overflow-hidden">
+                        <div className="text-xs p-2 rounded relative z-10">
+                          <div className="font-semibold">{inv.factionDefender}</div>
+                          <div className="text-wf-text-muted">{inv.defenderReward}</div>
+                        </div>
+                        <div className="absolute top-0 bottom-0 right-0 bg-wf-primary/20" style={{width: `${Math.max(0, 100-inv.progress)}%`}}></div>
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white font-mono text-xs z-20">
+                          {(100 - inv.progress).toFixed(2)}%
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -1192,27 +1203,33 @@ export default function App() {
             ) : dailyDeals.length > 0 ? (
               <div className="space-y-3">
                 {dailyDeals.map((deal, i) => (
-                  <Card key={i} className="p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-sm font-semibold">{deal.item}</p>
-                        <p className="text-xs text-wf-text-muted">{deal.amountTotal - deal.amountSold}/{deal.amountTotal} remaining</p>
+                  <Card key={i} className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold mb-1">{deal.item}</p>
+                        <div className="flex items-center gap-1 text-xs text-wf-text-muted">
+                          <span>{deal.amountTotal - deal.amountSold}/{deal.amountTotal} remaining</span>
+                          <span>•</span>
+                          <span className="text-wf-primary font-medium">Ends: {deal.timeLeft}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-wf-primary">
+                      <div className="text-right ml-4">
+                        <p className="text-sm font-bold text-wf-primary mb-1">
                           {deal.discount}% OFF
                         </p>
-                        <p className="text-xs">
+                        <div className="flex items-center gap-2 text-xs">
                           <span className="line-through text-wf-text-muted">{deal.originalPrice}</span>
-                          <span className="text-wf-primary ml-1">{deal.salePrice}</span>
-                        </p>
+                          <span className="text-wf-primary font-semibold">{deal.salePrice}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="w-full bg-wf-bg h-1.5 rounded-full relative group cursor-pointer">
-                      <div
-                        className="bg-wf-primary h-full transition-all duration-200 rounded-full"
-                        style={{ width: `${((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100}%` }}
-                      />
+                    <div className="relative">
+                      <div className="w-full bg-wf-bg h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-wf-primary h-full transition-all duration-300 rounded-full"
+                          style={{ width: `${((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100}%` }}
+                        />
+                      </div>
                       <div
                         className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
                         style={{
