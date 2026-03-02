@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity,
@@ -148,22 +148,133 @@ const Card = ({ children, className = "" }) => (
 );
 
 export default function App() {
+  // Time and Data State
   const [time, setTime] = useState(new Date());
   const [warframeData, setWarframeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [platform, setPlatform] = useState('pc');
+  const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
+
+  // Filter State
   const [fissureFilter, setFissureFilter] = useState('all');
   const [steelPathFilter, setSteelPathFilter] = useState('all');
   const [voidStormFilter, setVoidStormFilter] = useState('all');
+
+  // UI Expansion State
   const [expandedDaily, setExpandedDaily] = useState(false);
   const [expandedWeekly, setExpandedWeekly] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState(false);
   const [expandedFlashSales, setExpandedFlashSales] = useState(false);
-  const [selectedSection, setSelectedSection] = useState('fissures'); // 'all', 'fissures', 'steelPath', 'voidStorms' NOTE: 'all' is no longer mapped to a button but can be used.
-  const [sortieMode, setSortieMode] = useState('sortie'); // 'sortie' or 'archonHunt'
-  const [platform, setPlatform] = useState('pc');
-  const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
+
+  // Section and Mode State
+  const [selectedSection, setSelectedSection] = useState('all'); // 'all', 'fissures', 'steelPath', 'voidStorms' NOTE: 'all' is no longer mapped to a button but can be used.
+  const [sortieMode, setSortieMode] = useState('archonHunt'); // 'sortie' or 'archonHunt'
+
+  // Timer State
+  const [sortieTimerProgress, setSortieTimerProgress] = useState(0); // Progress percentage for 10-second timer
+  const [sectionTimerProgress, setSectionTimerProgress] = useState(0); // Progress percentage for 15-second timer
+  const [sortieTimerElapsed, setSortieTimerElapsed] = useState(0); // Elapsed time in milliseconds
+  const [sectionTimerElapsed, setSectionTimerElapsed] = useState(0); // Elapsed time for section switching
+
+  // Timer Refs
+  const lastSwitchTimeRef = useRef(0); // Track when last switch occurred
+  const sortieManualOverrideRef = useRef(false); // Track if manual selection occurred for sortie
+  const lastSectionSwitchRef = useRef(0); // Track when last section switch occurred
+  const manualOverrideRef = useRef(false); // Track if manual selection occurred
+
+  // Sortie timer effect - tracks elapsed time only
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSortieTimerElapsed(prev => {
+        const newElapsed = prev + 100; // Add 100ms every interval
+        const cycleTime = 10000; // 10 seconds in milliseconds
+
+        // Reset elapsed time when cycle completes
+        if (newElapsed >= cycleTime) {
+          return 0;
+        }
+
+        return newElapsed;
+      });
+    }, 100); // Update every 100ms
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Separate effect for mode switching - triggers when elapsed time resets
+  useEffect(() => {
+    const cycleTime = 10000; // 10 seconds in milliseconds
+    const currentTime = Date.now();
+
+    // Only switch if timer just completed, enough time has passed, and no manual override
+    if (sortieTimerElapsed === 0 && currentTime - lastSwitchTimeRef.current > 5000 && !sortieManualOverrideRef.current) {
+      lastSwitchTimeRef.current = currentTime;
+      setSortieMode(currentMode => {
+        const newMode = currentMode === 'sortie' ? 'archonHunt' : 'sortie';
+        return newMode;
+      });
+    }
+
+    // Clear manual override when timer starts again
+    if (sortieTimerElapsed > 0) {
+      sortieManualOverrideRef.current = false;
+    }
+  }, [sortieTimerElapsed]);
+
+  // Calculate progress from elapsed time (derived state)
+  useEffect(() => {
+    const progress = (sortieTimerElapsed / 10000) * 100; // 10 seconds = 100%
+    setSortieTimerProgress(progress);
+  }, [sortieTimerElapsed]);
+
+  // Calculate section timer progress from elapsed time (derived state)
+  useEffect(() => {
+    const progress = (sectionTimerElapsed / 15000) * 100; // 15 seconds = 100%
+    setSectionTimerProgress(progress);
+  }, [sectionTimerElapsed]);
+
+  // Section timer effect - tracks elapsed time for section switching
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSectionTimerElapsed(prev => {
+        const newElapsed = prev + 100; // Add 100ms every interval
+        const cycleTime = 15000; // 15 seconds in milliseconds
+
+        // Reset elapsed time when cycle completes
+        if (newElapsed >= cycleTime) {
+          return 0;
+        }
+
+        return newElapsed;
+      });
+    }, 100); // Update every 100ms
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Separate effect for section switching - triggers when section timer resets
+  useEffect(() => {
+    const cycleTime = 15000; // 15 seconds in milliseconds
+    const currentTime = Date.now();
+
+    // Only switch if timer just completed, enough time has passed, and no manual override
+    if (sectionTimerElapsed === 0 && currentTime - lastSectionSwitchRef.current > 7500 && !manualOverrideRef.current) {
+      lastSectionSwitchRef.current = currentTime;
+      setSelectedSection(currentSection => {
+        const sections = ['fissures', 'steelPath', 'voidStorms'];
+        const currentIndex = sections.indexOf(currentSection);
+        const nextIndex = (currentIndex + 1) % sections.length;
+        return sections[nextIndex];
+      });
+    }
+
+    // Clear manual override when timer starts again
+    if (sectionTimerElapsed > 0) {
+      manualOverrideRef.current = false;
+    }
+  }, [sectionTimerElapsed]);
 
   const platforms = [
     { value: 'pc', label: 'PC' },
@@ -310,7 +421,7 @@ export default function App() {
                 <span>{getPlatformLabel(platform)}</span>
                 <ChevronDown className={`w-4 h-4 text-wf-primary transition-transform duration-200 ${platformDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {platformDropdownOpen && (
                 <div className="absolute top-full mt-2 left-0 right-0 bg-wf-surface border border-wf-border rounded-lg shadow-lg z-50 overflow-hidden">
                   {platforms.map((p) => (
@@ -496,10 +607,14 @@ export default function App() {
 
           {/* Section Selector */}
           <section className="mt-8">
+            <div className='w-fit mx-auto'>
             <div className="flex justify-center gap-2 mb-4">
-
               <button
-                onClick={() => setSelectedSection('fissures')}
+                onClick={() => {
+                  setSelectedSection('fissures');
+                  setSectionTimerElapsed(0); // Reset timer when manually clicked
+                  manualOverrideRef.current = true; // Set manual override
+                }}
                 className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
                   selectedSection === 'fissures'
                     ? 'bg-wf-primary text-black'
@@ -509,7 +624,11 @@ export default function App() {
                 Void Fissures
               </button>
               <button
-                onClick={() => setSelectedSection('steelPath')}
+                onClick={() => {
+                  setSelectedSection('steelPath');
+                  setSectionTimerElapsed(0); // Reset timer when manually clicked
+                  manualOverrideRef.current = true; // Set manual override
+                }}
                 className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
                   selectedSection === 'steelPath'
                     ? 'bg-wf-primary text-black'
@@ -519,7 +638,11 @@ export default function App() {
                 Steel Path Fissures
               </button>
               <button
-                onClick={() => setSelectedSection('voidStorms')}
+                onClick={() => {
+                  setSelectedSection('voidStorms');
+                  setSectionTimerElapsed(0); // Reset timer when manually clicked
+                  manualOverrideRef.current = true; // Set manual override
+                }}
                 className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
                   selectedSection === 'voidStorms'
                     ? 'bg-wf-primary text-black'
@@ -528,6 +651,16 @@ export default function App() {
               >
                 Void Storms
               </button>
+            </div>
+            {/* 15-second section timer progress bar */}
+            <div className="bg-wf-surface border border-wf-border rounded-lg p-3 mb-4">
+              <div className="w-full bg-wf-border rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-wf-primary"
+                  style={{ width: `${sectionTimerProgress}%` }}
+                />
+              </div>
+            </div>
             </div>
           </section>
 
@@ -747,7 +880,11 @@ export default function App() {
               <SectionHeader title={sortieMode === 'sortie' ? 'Sortie' : 'Archon'} />
               <div className="flex gap-2">
                 <button
-                  onClick={() => setSortieMode('sortie')}
+                  onClick={() => {
+                    setSortieMode('sortie');
+                    setSortieTimerElapsed(0); // Reset timer when manually clicked
+                    sortieManualOverrideRef.current = true; // Set manual override
+                  }}
                   className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
                     sortieMode === 'sortie'
                       ? 'bg-wf-primary text-black'
@@ -757,7 +894,11 @@ export default function App() {
                   Sortie
                 </button>
                 <button
-                  onClick={() => setSortieMode('archonHunt')}
+                  onClick={() => {
+                    setSortieMode('archonHunt');
+                    setSortieTimerElapsed(0); // Reset timer when manually clicked
+                    sortieManualOverrideRef.current = true; // Set manual override
+                  }}
                   className={`px-3 py-1 cursor-pointer text-xs font-semibold rounded transition-colors ${
                     sortieMode === 'archonHunt'
                       ? 'bg-wf-primary text-black'
@@ -766,6 +907,15 @@ export default function App() {
                 >
                   Archon Hunt
                 </button>
+              </div>
+            </div>
+            {/* 10-second progress bar */}
+            <div className="bg-wf-surface border border-wf-border rounded-lg p-3 mb-4">
+              <div className="w-full bg-wf-border rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-wf-primary"
+                  style={{ width: `${sortieTimerProgress}%` }}
+                />
               </div>
             </div>
             {loading ? (
@@ -1024,7 +1174,7 @@ export default function App() {
             )}
           </section>
 
-          
+
           {/* Daily Deals */}
           <section>
             <SectionHeader title="Darvo's Deal" className='mb-4' />
@@ -1063,9 +1213,9 @@ export default function App() {
                         className="bg-wf-primary h-full transition-all duration-200 rounded-full"
                         style={{ width: `${((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100}%` }}
                       />
-                      <div 
+                      <div
                         className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
-                        style={{ 
+                        style={{
                           left: `${Math.min(((deal.amountTotal - deal.amountSold) / deal.amountTotal) * 100, 85)}%`,
                           transform: 'translateX(-50%)'
                         }}
